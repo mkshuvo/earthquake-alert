@@ -9,6 +9,29 @@ interface Earthquake {
     mag: number;
     place: string;
     time: number;
+    updated: number;
+    tz: string | null;
+    url: string;
+    detail: string;
+    felt: number | null;
+    cdi: number | null;
+    mmi: number | null;
+    alert: string | null;
+    status: string;
+    tsunami: number;
+    sig: number;
+    net: string;
+    code: string;
+    ids: string;
+    sources: string;
+    types: string;
+    nst: number | null;
+    dmin: number | null;
+    rms: number;
+    gap: number | null;
+    magType: string;
+    type: string;
+    title: string;
   };
   geometry: {
     type: string;
@@ -16,6 +39,7 @@ interface Earthquake {
   };
   id: string;
 }
+
 
 const EarthquakeList: React.FC = () => {
   const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
@@ -30,7 +54,7 @@ const EarthquakeList: React.FC = () => {
           return response.json();
         })
         .then((data) => {
-          setEarthquakes(data.features.slice(0, 10));
+          setEarthquakes(data.features.slice(0, 30));
         })
         .catch((error) => {
           console.error('Error fetching earthquake data:', error);
@@ -57,11 +81,25 @@ const EarthquakeList: React.FC = () => {
     return ''; // Default color or no color
   };
 
+
+  const getColorTextIndicator = (magnitude: number) => {
+    if (magnitude >= 0 && magnitude < 3) {
+      return 'text-green-500';
+    } else if (magnitude >= 3 && magnitude < 5) {
+      return 'text-blue-500';
+    } else if (magnitude >= 5 && magnitude < 7) {
+      return 'text-orange-500';
+    } else if (magnitude >= 7 && magnitude <= 9) {
+      return 'text-red-800';
+    }
+    return ''; // Default color or no color
+  };
+
   return (
     <div className="container mx-auto mt-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {earthquakes.map((earthquake, index) => (
-          <div key={index} className="relative bg-white rounded-md overflow-hidden shadow-md">
+          <div key={index} className="relative bg-black text-white rounded-md overflow-hidden shadow-md">
             {/* Color Indicator Sidebar */}
             <div
               className={`absolute top-0 bottom-0 left-0 ${
@@ -70,22 +108,22 @@ const EarthquakeList: React.FC = () => {
             ></div>
             <div className="p-6">
               <h1 className="text-2xl mb-2">
-                <p>Magnitude:</p> <strong className="text-3xl">{earthquake.properties.mag}</strong>
+                <p>Magnitude:</p> <strong className={getColorIndicator(earthquake.properties.mag)}> {earthquake.properties.mag}</strong>
               </h1>
-              <h3 className="text-xl font-semibold text-gray-800">{earthquake.properties.place}</h3>
-              <p className="text-gray-600 mb-2">
+              <h3 className="text-xl font-semibold text-white-800">{earthquake.properties.place}</h3>
+              <p className="text-white-600 mb-2">
                 <strong>Date and Time:</strong>{' '}
                 {new Date(earthquake.properties.time).toLocaleString()}
               </p>
-              <p className="text-gray-600 mb-2">
+              <p className="text-white-600 mb-2">
                 <strong>Coordinates:</strong> Latitude: {earthquake.geometry.coordinates[1]}, Longitude:{' '}
                 {earthquake.geometry.coordinates[0]}, Altitude: {earthquake.geometry.coordinates[2]} km
               </p>
-              <p className="text-gray-600 mb-2">
+              <p className="text-white-600 mb-2">
                 <strong>Location Name:</strong>{' '}
                 <GoogleLocation lat={earthquake.geometry.coordinates[1]} long={earthquake.geometry.coordinates[0]} />
               </p>
-              <p className="text-gray-600">
+              <p className="text-white-600">
                 <strong>Google Maps:</strong>{' '}
                 <a
                   href={getGoogleMapsLink(
@@ -108,4 +146,3 @@ const EarthquakeList: React.FC = () => {
 };
 
 export default EarthquakeList;
-
