@@ -84,13 +84,13 @@ const EarthquakeList: React.FC = () => {
 
   const getColorTextIndicator = (magnitude: number) => {
     if (magnitude >= 0 && magnitude < 3) {
-      return 'text-green-500';
+      return 'text-green-500 text-8xl';
     } else if (magnitude >= 3 && magnitude < 5) {
-      return 'text-blue-500';
+      return 'text-blue-500 text-8xl';
     } else if (magnitude >= 5 && magnitude < 7) {
-      return 'text-orange-500';
+      return 'text-orange-500 text-8xl';
     } else if (magnitude >= 7 && magnitude <= 9) {
-      return 'text-red-800';
+      return 'text-red-800 text-8xl';
     }
     return ''; // Default color or no color
   };
@@ -108,7 +108,7 @@ const EarthquakeList: React.FC = () => {
             ></div>
             <div className="p-6">
               <h1 className="text-2xl mb-2">
-                <p>Magnitude:</p> <strong className={getColorIndicator(earthquake.properties.mag)}> {earthquake.properties.mag}</strong>
+                <p>Magnitude:</p> <strong className={getColorTextIndicator(earthquake.properties.mag)}> {(earthquake.properties.mag)}</strong>
               </h1>
               <h3 className="text-xl font-semibold text-white-800">{earthquake.properties.place}</h3>
               <p className="text-white-600 mb-2">
