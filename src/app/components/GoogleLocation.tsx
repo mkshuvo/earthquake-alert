@@ -23,7 +23,7 @@ const GoogleLocation: React.FC<GoogleLocationProps> = ({ lat, long }) => {
 
       try {
         const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=AIzaSyAEHRs0j7bVP7__SmyGZvkZh4SiqKVjRH0`
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${long}&key=${process.env.GOOGLE_API}`
         );
 
         if (!response.ok) {
