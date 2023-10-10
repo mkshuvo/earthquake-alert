@@ -1,4 +1,4 @@
-import { atom } from 'recoil';
+import { atom, selector } from 'recoil';
 export interface Earthquake {
     properties: {
         mag: number;
@@ -37,4 +37,12 @@ export interface Earthquake {
 export const earthquakeState = atom<Earthquake[]>({
     key: 'earthquakeState',
     default: [],
+});
+
+export const earthquakeUpdates = selector<Earthquake[]>({
+    key: 'earthquakesUpdates',
+    get: ({get}) => {
+        const x = get(earthquakeState);
+        return x;
+    }
 });

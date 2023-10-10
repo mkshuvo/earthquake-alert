@@ -4,21 +4,30 @@ import React, { useState, useEffect } from 'react';
 import GoogleLocation from './GoogleLocation';
 import {useRecoilState, useRecoilValue} from 'recoil';
 import {Earthquake, earthquakeState} from '@/app/components/earthquakeData/atoms';
-import {useFetchAndSetEarthquakeData} from "@/app/components/earthquakeData/api";
+import {fetchEarthquakeData} from "@/app/components/earthquakeData/api";
 
 
 const EarthquakeList: React.FC = () => {
   const [earthquakes, setEarthquakes] = useRecoilState(earthquakeState);
-  const fetchAndSetEarthquakeData = useFetchAndSetEarthquakeData();
 
+  const fetchData = async () => {
+    try {
+      setInterval(async () => {
+        const data = await fetchEarthquakeData();
+        if (earthquakes) {
+          setEarthquakes(data);
+        }
+      },1000)
+    } catch (error) {
+      console.error('Error fetching earthquake data:', error);
+      // Handle errors as needed
+    }
+  };
+
+  // Call fetchData when the component mounts
   useEffect(() => {
-    // Use an IIFE (Immediately Invoked Function Expression) for asynchronous code
-    (async () => {
-      const data: any = await fetchAndSetEarthquakeData();
-      setEarthquakes(data); // Update the state
-    })();
-  }, [fetchAndSetEarthquakeData, setEarthquakes]);
-  const earthquakeList = earthquakes || [];
+    fetchData();
+  }, [setEarthquakes]);
 
   const getGoogleMapsLink = (lat: number, long: number) => {
     return `https://www.google.com/maps?q=${lat},${long}`;
@@ -54,7 +63,7 @@ const EarthquakeList: React.FC = () => {
   return (
       <div className="container mx-auto mt-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {earthquakeList.map((earthquake, index) => (
+          {earthquakes.map((earthquake, index) => (
               <div key={index} className="relative bg-black text-white rounded-md overflow-hidden shadow-md">
                 {/* Color Indicator Sidebar */}
                 <div

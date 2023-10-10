@@ -17,11 +17,11 @@ export const fetchEarthquakeData = async () => {
     }
 };
 
-export const useFetchAndSetEarthquakeData = () => {
-    const setEarthquakes = useSetRecoilState(earthquakeState);
+// export const useFetchAndSetEarthquakeData = () => {
+//     const setEarthquakes = useSetRecoilState(earthquakeState);
 
-    return async () => {
-        const data = await fetchEarthquakeData();
-        setEarthquakes(data);
-    };
-};
+//     return async () => {
+//         const data = await fetchEarthquakeData();
+//         setEarthquakes(data);
+//     };
+// };
