@@ -2,67 +2,23 @@
 // Import React and Tailwind CSS
 import React, { useState, useEffect } from 'react';
 import GoogleLocation from './GoogleLocation';
-
-// Define an interface for the earthquake data
-interface Earthquake {
-  properties: {
-    mag: number;
-    place: string;
-    time: number;
-    updated: number;
-    tz: string | null;
-    url: string;
-    detail: string;
-    felt: number | null;
-    cdi: number | null;
-    mmi: number | null;
-    alert: string | null;
-    status: string;
-    tsunami: number;
-    sig: number;
-    net: string;
-    code: string;
-    ids: string;
-    sources: string;
-    types: string;
-    nst: number | null;
-    dmin: number | null;
-    rms: number;
-    gap: number | null;
-    magType: string;
-    type: string;
-    title: string;
-  };
-  geometry: {
-    type: string;
-    coordinates: [number, number, number];
-  };
-  id: string;
-}
+import {useRecoilState, useRecoilValue} from 'recoil';
+import {Earthquake, earthquakeState} from '@/app/components/earthquakeData/atoms';
+import {useFetchAndSetEarthquakeData} from "@/app/components/earthquakeData/api";
 
 
 const EarthquakeList: React.FC = () => {
-  const [earthquakes, setEarthquakes] = useState<Earthquake[]>([]);
+  const [earthquakes, setEarthquakes] = useRecoilState(earthquakeState);
+  const fetchAndSetEarthquakeData = useFetchAndSetEarthquakeData();
 
   useEffect(() => {
-    const fetchEarthquakeData = () => {
-      fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson')
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then((data) => {
-          setEarthquakes(data.features.slice(0, 30));
-        })
-        .catch((error) => {
-          console.error('Error fetching earthquake data:', error);
-        });
-    };
-
-    fetchEarthquakeData();
-  }, []);
+    // Use an IIFE (Immediately Invoked Function Expression) for asynchronous code
+    (async () => {
+      const data: any = await fetchAndSetEarthquakeData();
+      setEarthquakes(data); // Update the state
+    })();
+  }, [fetchAndSetEarthquakeData, setEarthquakes]);
+  const earthquakeList = earthquakes || [];
 
   const getGoogleMapsLink = (lat: number, long: number) => {
     return `https://www.google.com/maps?q=${lat},${long}`;
@@ -96,17 +52,17 @@ const EarthquakeList: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto mt-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {earthquakes.map((earthquake, index) => (
-          <div key={index} className="relative bg-black text-white rounded-md overflow-hidden shadow-md">
-            {/* Color Indicator Sidebar */}
-            <div
-              className={`absolute top-0 bottom-0 left-0 ${
-                getColorIndicator(earthquake.properties.mag)
-              } w-3`}
-            ></div>
-            <div className="p-6">
+      <div className="container mx-auto mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {earthquakeList.map((earthquake, index) => (
+              <div key={index} className="relative bg-black text-white rounded-md overflow-hidden shadow-md">
+                {/* Color Indicator Sidebar */}
+                <div
+                    className={`absolute top-0 bottom-0 left-0 ${
+                        getColorIndicator(earthquake.properties.mag)
+                    } w-3`}
+                ></div>
+                <div className="p-6">
               <h1 className="text-2xl mb-2">
                 <p>Magnitude:</p> <strong className={getColorTextIndicator(earthquake.properties.mag)}> {(earthquake.properties.mag)}</strong>
               </h1>
