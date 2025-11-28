@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: ea-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://ea-worker:8080/api
+      NEXT_PUBLIC_WEBSOCKET_URL: http://ea-worker:8080
+    networks:
+      - earthquake_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  earthquake_network:
+    external: true
