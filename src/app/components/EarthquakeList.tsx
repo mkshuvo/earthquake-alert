@@ -1,110 +1,126 @@
-'use client'
-// Import React and Tailwind CSS
-import React, { useState, useEffect } from 'react';
-import GoogleLocation from './GoogleLocation';
-import {useRecoilState, useRecoilValue} from 'recoil';
-import {Earthquake, earthquakeState} from '@/app/components/earthquakeData/atoms';
-import {fetchEarthquakeData} from "@/app/components/earthquakeData/api";
-
+'use client';
+import React, { useState } from 'react';
+import { useFilteredEarthquakes, useIsLoading } from '../../store/earthquakeStore';
+import { EarthquakeEvent } from '../../store/earthquakeStore';
 
 const EarthquakeList: React.FC = () => {
-  const [earthquakes, setEarthquakes] = useRecoilState(earthquakeState);
+  const earthquakes = useFilteredEarthquakes();
+  const isLoading = useIsLoading();
+  const [selectedEarthquake, setSelectedEarthquake] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    try {
-      setInterval(async () => {
-        const data = await fetchEarthquakeData();
-        if (earthquakes) {
-          setEarthquakes(data);
-        }
-      },1000)
-    } catch (error) {
-      console.error('Error fetching earthquake data:', error);
-      // Handle errors as needed
-    }
+  const getGoogleMapsLink = (lat: number, lng: number) => {
+    return `https://www.google.com/maps?q=${lat},${lng}`;
   };
 
-  // Call fetchData when the component mounts
-  useEffect(() => {
-    fetchData();
-  }, [setEarthquakes]);
-
-  const getGoogleMapsLink = (lat: number, long: number) => {
-    return `https://www.google.com/maps?q=${lat},${long}`;
+  const getMagnitudeColor = (magnitude: number) => {
+    if (magnitude >= 7) return 'bg-red-500';
+    if (magnitude >= 5) return 'bg-orange-500';
+    if (magnitude >= 3) return 'bg-yellow-500';
+    return 'bg-green-500';
   };
 
-  const getColorIndicator = (magnitude: number) => {
-    if (magnitude >= 0 && magnitude < 3) {
-      return 'bg-green-500';
-    } else if (magnitude >= 3 && magnitude < 5) {
-      return 'bg-blue-500';
-    } else if (magnitude >= 5 && magnitude < 7) {
-      return 'bg-orange-500';
-    } else if (magnitude >= 7 && magnitude <= 9) {
-      return 'bg-red-800';
-    }
-    return ''; // Default color or no color
+  const getMagnitudeTextColor = (magnitude: number) => {
+    if (magnitude >= 7) return 'text-red-400';
+    if (magnitude >= 5) return 'text-orange-400';
+    if (magnitude >= 3) return 'text-yellow-400';
+    return 'text-green-400';
   };
 
+  const formatTimestamp = (timestamp: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
 
-  const getColorTextIndicator = (magnitude: number) => {
-    if (magnitude >= 0 && magnitude < 3) {
-      return 'text-green-500 text-8xl';
-    } else if (magnitude >= 3 && magnitude < 5) {
-      return 'text-blue-500 text-8xl';
-    } else if (magnitude >= 5 && magnitude < 7) {
-      return 'text-orange-500 text-8xl';
-    } else if (magnitude >= 7 && magnitude <= 9) {
-      return 'text-red-800 text-8xl';
-    }
-    return ''; // Default color or no color
+    if (hours > 0) return `${hours}h ago`;
+    if (minutes > 0) return `${minutes}m ago`;
+    return 'Just now';
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <div className="animate-pulse space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-24 bg-gray-700 rounded"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-      <div className="container mx-auto mt-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {earthquakes.map((earthquake, index) => (
-              <div key={index} className="relative bg-black text-white rounded-md overflow-hidden shadow-md">
-                {/* Color Indicator Sidebar */}
-                <div
-                    className={`absolute top-0 bottom-0 left-0 ${
-                        getColorIndicator(earthquake.properties.mag)
-                    } w-3`}
-                ></div>
-                <div className="p-6">
-              <h1 className="text-2xl mb-2">
-                <p>Magnitude:</p> <strong className={getColorTextIndicator(earthquake.properties.mag)}> {(earthquake.properties.mag)}</strong>
-              </h1>
-              <h3 className="text-xl font-semibold text-white-800">{earthquake.properties.place}</h3>
-              <p className="text-white-600 mb-2">
-                <strong>Date and Time:</strong>{' '}
-                {new Date(earthquake.properties.time).toLocaleString()}
-              </p>
-              <p className="text-white-600 mb-2">
-                <strong>Coordinates:</strong> Latitude: {earthquake.geometry.coordinates[1]}, Longitude:{' '}
-                {earthquake.geometry.coordinates[0]}, Altitude: {earthquake.geometry.coordinates[2]} km
-              </p>
-              <p className="text-white-600 mb-2">
-                <strong>Location Name:</strong>{' '}
-                <GoogleLocation lat={earthquake.geometry.coordinates[1]} long={earthquake.geometry.coordinates[0]} />
-              </p>
-              <p className="text-white-600">
-                <strong>Google Maps:</strong>{' '}
-                <a
-                  href={getGoogleMapsLink(
-                    earthquake.geometry.coordinates[1],
-                    earthquake.geometry.coordinates[0]
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  Open in Google Maps
-                </a>
-              </p>
-            </div>
+    <div className="bg-gray-800 rounded-lg border border-gray-700">
+      <div className="p-6 border-b border-gray-700">
+        <h2 className="text-xl font-semibold text-white">📋 Recent Earthquakes</h2>
+        <div className="text-sm text-gray-400 mt-2">
+          {earthquakes.length} earthquake{earthquakes.length !== 1 ? 's' : ''} found
+        </div>
+      </div>
+      
+      <div className="p-6">
+        {earthquakes.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-4xl mb-4">🌍</div>
+            <h3 className="text-lg font-medium text-white mb-2">No earthquakes found</h3>
+            <p className="text-gray-400">Check back later for earthquake data.</p>
           </div>
-        ))}
+        ) : (
+          <div className="space-y-4">
+            {earthquakes.map((earthquake) => (
+              <div
+                key={earthquake.id}
+                className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className={`w-4 h-4 rounded-full ${getMagnitudeColor(earthquake.magnitude)}`}></div>
+                      <span className={`text-xl font-bold ${getMagnitudeTextColor(earthquake.magnitude)}`}>
+                        {earthquake.magnitude}M
+                      </span>
+                      {earthquake.alert && (
+                        <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">
+                          {earthquake.alert.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <h3 className="text-white font-medium mb-1">
+                      {earthquake.location.place}
+                    </h3>
+                    
+                    <div className="text-sm text-gray-400 space-y-1">
+                      <div>📍 {earthquake.location.latitude.toFixed(3)}, {earthquake.location.longitude.toFixed(3)}</div>
+                      <div>⬇️ Depth: {earthquake.depth}km</div>
+                      <div>🕐 {formatTimestamp(earthquake.timestamp)}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-end space-y-2">
+                    <a
+                      href={getGoogleMapsLink(earthquake.location.latitude, earthquake.location.longitude)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded transition-colors"
+                    >
+                      📍 Map
+                    </a>
+                    
+                    <a
+                      href={earthquake.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
+                    >
+                      📊 Details
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
