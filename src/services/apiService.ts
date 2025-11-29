@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { EarthquakeEvent, EarthquakeFilters } from '../store/earthquakeStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:51763/api';
+const API_BASE_URL = '/api';
 const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
 
 if (typeof window !== 'undefined') {

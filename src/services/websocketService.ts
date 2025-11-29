@@ -1,140 +1,69 @@
-import { io, Socket } from 'socket.io-client';
 import { useEarthquakeStore, EarthquakeEvent } from '../store/earthquakeStore';
+import apiService from './apiService';
 
 class WebSocketService {
-  private socket: Socket | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectInterval = 5000;
-  private serverUrl: string;
-
-  constructor() {
-    // Use environment variable if set (for Docker), otherwise use localhost
-    let baseUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:51763';
-    console.log(`[WebSocketService] Base URL from env: ${baseUrl}`);
-    
-    // Remove '/api' suffix if present and convert to WebSocket protocol
-    baseUrl = baseUrl.replace('/api', '');
-    this.serverUrl = baseUrl;
-    console.log(`[WebSocketService] Initializing with server URL: ${this.serverUrl}`);
-  }
+  private pollInterval: NodeJS.Timeout | null = null;
+  private lastKnownEarthquakes: Set<string> = new Set();
+  private isConnected = false;
 
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.socket?.connected) {
-        resolve();
-        return;
+    return new Promise(async (resolve) => {
+      console.log('🔌 Starting real-time earthquake polling...');
+      
+      // Load initial data
+      try {
+        const earthquakes = await apiService.getRecentEarthquakes(100);
+        earthquakes.forEach(eq => this.lastKnownEarthquakes.add(eq.id));
+        useEarthquakeStore.getState().setEarthquakes(earthquakes);
+      } catch (error) {
+        console.error('Failed to load initial data:', error);
       }
-
-      this.socket = io(this.serverUrl, {
-        transports: ['websocket', 'polling'],
-        upgrade: true,
-        timeout: 20000,
-        forceNew: true,
+      
+      this.isConnected = true;
+      useEarthquakeStore.getState().updateServerStatus({
+        isConnected: true,
+        lastUpdate: new Date(),
       });
-
-      this.socket.on('connect', () => {
-        console.log('✅ Connected to earthquake server');
-        this.reconnectAttempts = 0;
-        
-        useEarthquakeStore.getState().updateServerStatus({
-          isConnected: true,
-          lastUpdate: new Date(),
-        });
-
-        // Subscribe to earthquake updates
-        this.socket?.emit('subscribe-earthquakes');
-        resolve();
-      });
-
-      this.socket.on('connect_error', (error) => {
-        console.error('❌ Connection error:', error);
-        useEarthquakeStore.getState().updateServerStatus({
-          isConnected: false,
-        });
-        useEarthquakeStore.getState().setError(`Connection failed: ${error.message}`);
-        reject(error);
-      });
-
-      this.socket.on('disconnect', (reason) => {
-        console.warn('🔌 Disconnected from server:', reason);
-        useEarthquakeStore.getState().updateServerStatus({
-          isConnected: false,
-        });
-
-        if (reason === 'io server disconnect') {
-          // Server disconnected, try to reconnect
-          this.handleReconnect();
-        }
-      });
-
-      this.socket.on('new-earthquake', (earthquake: EarthquakeEvent) => {
-        console.log('🆕 New earthquake received:', earthquake);
-        
-        // Transform timestamp to Date object if it's a string
-        if (typeof earthquake.timestamp === 'string') {
-          earthquake.timestamp = new Date(earthquake.timestamp);
-        }
-        if (typeof earthquake.createdAt === 'string') {
-          earthquake.createdAt = new Date(earthquake.createdAt);
-        }
-        if (typeof earthquake.updatedAt === 'string') {
-          earthquake.updatedAt = new Date(earthquake.updatedAt);
-        }
-
-        useEarthquakeStore.getState().addEarthquake(earthquake);
-        
-        // Show notification for significant earthquakes
-        if (earthquake.magnitude >= 5.0) {
-          this.showNotification(earthquake);
-        }
-      });
-
-      this.socket.on('server-status', (status: { isConnected: boolean; lastUpdate: string }) => {
-        useEarthquakeStore.getState().updateServerStatus({
-          isConnected: status.isConnected,
-          lastUpdate: new Date(status.lastUpdate),
-        });
-      });
-
-      this.socket.on('subscribed', (message: string) => {
-        console.log('📺 Subscribed to earthquake updates:', message);
-      });
-
-      this.socket.on('error', (error: any) => {
-        console.error('🚨 Socket error:', error);
-        useEarthquakeStore.getState().setError(`Socket error: ${error.message || error}`);
-      });
-
-      // Set connection timeout
-      setTimeout(() => {
-        if (!this.socket?.connected) {
-          reject(new Error('Connection timeout'));
-        }
-      }, 10000);
+      
+      // Start polling for new earthquakes every 5 seconds
+      this.pollInterval = setInterval(() => this.checkForNewEarthquakes(), 5000);
+      console.log('✅ Connected and polling for earthquakes');
+      resolve();
     });
   }
 
-  private handleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ Max reconnection attempts reached');
-      useEarthquakeStore.getState().setError('Unable to reconnect to server. Please refresh the page.');
-      return;
-    }
-
-    this.reconnectAttempts++;
-    console.log(`🔄 Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-
-    setTimeout(() => {
-      if (this.reconnectAttempts <= this.maxReconnectAttempts) {
-        this.connect().catch((error) => {
-          console.error('Reconnection failed:', error);
-          if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.handleReconnect();
+  private async checkForNewEarthquakes(): Promise<void> {
+    try {
+      const earthquakes = await apiService.getRecentEarthquakes(50);
+      
+      // Find new earthquakes
+      for (const earthquake of earthquakes) {
+        if (!this.lastKnownEarthquakes.has(earthquake.id)) {
+          this.lastKnownEarthquakes.add(earthquake.id);
+          
+          // Add to store (which triggers UI update)
+          useEarthquakeStore.getState().addEarthquake(earthquake);
+          
+          console.log('🆕 New earthquake detected:', earthquake.id);
+          
+          // Show notification for significant earthquakes
+          if (earthquake.magnitude >= 5.0) {
+            this.showNotification(earthquake);
           }
-        });
+        }
       }
-    }, this.reconnectInterval * this.reconnectAttempts);
+      
+      // Update server status
+      useEarthquakeStore.getState().updateServerStatus({
+        isConnected: true,
+        lastUpdate: new Date(),
+      });
+    } catch (error) {
+      console.error('Polling error:', error);
+      useEarthquakeStore.getState().updateServerStatus({
+        isConnected: false,
+      });
+    }
   }
 
   private showNotification(earthquake: EarthquakeEvent): void {
@@ -157,28 +86,21 @@ class WebSocketService {
   }
 
   disconnect(): void {
-    if (this.socket) {
-      this.socket.emit('unsubscribe-earthquakes');
-      this.socket.disconnect();
-      this.socket = null;
-      
-      useEarthquakeStore.getState().updateServerStatus({
-        isConnected: false,
-      });
-      
-      console.log('🔌 Disconnected from earthquake server');
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
     }
+    
+    this.isConnected = false;
+    useEarthquakeStore.getState().updateServerStatus({
+      isConnected: false,
+    });
+    
+    console.log('🔌 Disconnected from earthquake polling');
   }
 
-  isConnected(): boolean {
-    return this.socket?.connected || false;
-  }
-
-  // Manual trigger for testing
-  triggerFetch(): void {
-    if (this.socket?.connected) {
-      this.socket.emit('trigger-fetch');
-    }
+  getConnectionStatus(): boolean {
+    return this.isConnected;
   }
 }
 

@@ -16,7 +16,6 @@ const Home: React.FC = () => {
   const latestEarthquake = earthquakes.length > 0 ? earthquakes[0] : null;
 
   useEffect(() => {
-    let pollingInterval: NodeJS.Timeout | null = null;
     let timeoutHandle: NodeJS.Timeout | null = null;
     
     const initializeApp = async () => {
@@ -26,10 +25,14 @@ const Home: React.FC = () => {
         // Request notification permission
         await webSocketService.requestNotificationPermission();
         
-        // Skip WebSocket - just use HTTP polling from the start
-        console.log('Using HTTP polling for earthquake data');
-        loadInitialData();
-        pollingInterval = startPolling();
+        // Load initial data first
+        console.log('Loading initial earthquake data...');
+        await loadInitialData();
+        
+        // Connect to WebSocket for real-time updates
+        console.log('Connecting to real-time WebSocket...');
+        await webSocketService.connect();
+        
         setLoading(false);
         setIsConnecting(false);
       } catch (error) {
@@ -45,9 +48,6 @@ const Home: React.FC = () => {
     // Cleanup on unmount
     return () => {
       webSocketService.disconnect();
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
       }
@@ -62,20 +62,6 @@ const Home: React.FC = () => {
       console.error('Failed to load initial data:', error);
       setError('Failed to load earthquake data');
     }
-  };
-
-  const startPolling = () => {
-    const interval = setInterval(async () => {
-      try {
-        const earthquakes = await apiService.getRecentEarthquakes(50);
-        setEarthquakes(earthquakes);
-      } catch (error) {
-        console.error('Polling failed:', error);
-      }
-    }, 60000); // Poll every minute
-
-    // Store the cleanup function for later use
-    return interval;
   };
 
   if (isConnecting) {

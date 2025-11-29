@@ -13,8 +13,8 @@ RUN npm install
 COPY . .
 
 # Build the application with environment variables
-ARG NEXT_PUBLIC_API_URL=http://host.docker.internal:6000/api
-ARG NEXT_PUBLIC_WEBSOCKET_URL=http://host.docker.internal:6000
+ARG NEXT_PUBLIC_API_URL=http://localhost:6000/api
+ARG NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}
 
@@ -38,8 +38,8 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
 # Set runtime environment variables
-ENV NEXT_PUBLIC_API_URL=http://host.docker.internal:6000/api
-ENV NEXT_PUBLIC_WEBSOCKET_URL=http://host.docker.internal:6000
+ENV NEXT_PUBLIC_API_URL=http://localhost:6000/api
+ENV NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
 
 # Expose port
 EXPOSE 3000
