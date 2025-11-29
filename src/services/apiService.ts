@@ -1,8 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
 import { EarthquakeEvent, EarthquakeFilters } from '../store/earthquakeStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:51763/api';
 const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+
+if (typeof window !== 'undefined') {
+  console.log('[ApiService] Initialized with API_BASE_URL:', API_BASE_URL);
+}
 
 interface ApiResponse<T> {
   data: T;
@@ -78,9 +82,11 @@ class ApiService {
       if (filters.limit) params.append('limit', filters.limit.toString());
     }
     try {
+      console.log(`[ApiService] Fetching from ${API_BASE_URL}/earthquakes`);
       const response: AxiosResponse<EarthquakeEvent[]> = await this.axiosInstance.get(
         `/earthquakes?${params.toString()}`
       );
+      console.log(`[ApiService] Got ${response.data.length} earthquakes from API`);
       // Transform string dates to Date objects
       return response.data.map(earthquake => ({
         ...earthquake,
@@ -89,15 +95,8 @@ class ApiService {
         updatedAt: new Date(earthquake.updatedAt),
       }));
     } catch (error: any) {
-      // Only fallback if it's a network error or 5xx/4xx error
-      const isNetworkError = !error.response;
-      const isServerError = error.response && error.response.status >= 500;
-      const isClientError = error.response && error.response.status >= 400;
-      if (isNetworkError || isServerError || isClientError) {
-        console.error('Failed to fetch earthquakes from backend, falling back to USGS:', error);
-        return this.getFromUSGS();
-      }
-      throw new Error('Failed to fetch earthquake data');
+      console.error(`[ApiService] FAILED to fetch from ${API_BASE_URL}:`, error.message);
+      throw error; // NO FALLBACK - fail hard so we know API is down
     }
   }
 
@@ -181,9 +180,11 @@ class ApiService {
       params.append('maxMagnitude', '10');
       
       try {
+        console.log(`[ApiService] Fetching recent earthquakes from ${API_BASE_URL}`);
         const response: AxiosResponse<EarthquakeEvent[]> = await this.axiosInstance.get(
           `/earthquakes?${params.toString()}`
         );
+        console.log(`[ApiService] Got ${response.data.length} recent earthquakes`);
         // Transform string dates to Date objects
         return response.data.map(earthquake => ({
           ...earthquake,
@@ -192,19 +193,12 @@ class ApiService {
           updatedAt: new Date(earthquake.updatedAt),
         }));
       } catch (error: any) {
-        // Only fallback if it's a network error or 5xx/4xx error
-        const isNetworkError = !error.response;
-        const isServerError = error.response && error.response.status >= 500;
-        const isClientError = error.response && error.response.status >= 400;
-        if (isNetworkError || isServerError || isClientError) {
-          console.error('Failed to fetch recent earthquakes from backend, falling back to USGS:', error);
-          return this.getFromUSGS();
-        }
-        throw new Error('Failed to fetch recent earthquake data');
+        console.error(`[ApiService] FAILED to fetch recent earthquakes from ${API_BASE_URL}:`, error.message);
+        throw error; // NO FALLBACK - fail hard
       }
     } catch (error) {
-      // If both backend and USGS fail, throw error
-      throw new Error('Failed to fetch recent earthquake data');
+      console.error('[ApiService] Failed to fetch recent earthquake data:', error);
+      throw error;
     }
   }
 }

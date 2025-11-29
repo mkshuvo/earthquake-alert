@@ -9,7 +9,14 @@ class WebSocketService {
   private serverUrl: string;
 
   constructor() {
-    this.serverUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:8080';
+    // Use environment variable if set (for Docker), otherwise use localhost
+    let baseUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:51763';
+    console.log(`[WebSocketService] Base URL from env: ${baseUrl}`);
+    
+    // Remove '/api' suffix if present and convert to WebSocket protocol
+    baseUrl = baseUrl.replace('/api', '');
+    this.serverUrl = baseUrl;
+    console.log(`[WebSocketService] Initializing with server URL: ${this.serverUrl}`);
   }
 
   connect(): Promise<void> {

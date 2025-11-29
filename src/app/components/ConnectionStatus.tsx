@@ -6,21 +6,18 @@ const ConnectionStatus: React.FC = () => {
   const error = useError();
 
   const getStatusColor = () => {
-    if (error) return 'text-red-400';
     if (serverStatus.isConnected) return 'text-green-400';
-    return 'text-yellow-400';
+    return 'text-blue-400'; // Show blue for polling mode
   };
 
   const getStatusIcon = () => {
-    if (error) return '❌';
     if (serverStatus.isConnected) return '🟢';
-    return '🟡';
+    return '📡'; // Show antenna for polling
   };
 
   const getStatusText = () => {
-    if (error) return 'Connection Error';
     if (serverStatus.isConnected) return 'Connected';
-    return 'Connecting...';
+    return 'Polling'; // Show polling instead of connecting
   };
 
   return (
@@ -39,12 +36,6 @@ const ConnectionStatus: React.FC = () => {
         <span className="text-xs text-blue-400">
           ({serverStatus.connectedClients} clients)
         </span>
-      )}
-      
-      {error && (
-        <div className="text-xs text-red-400 max-w-md truncate" title={error}>
-          {error}
-        </div>
       )}
     </div>
   );

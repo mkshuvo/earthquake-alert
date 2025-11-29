@@ -12,8 +12,15 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application with environment variables
+ARG NEXT_PUBLIC_API_URL=http://host.docker.internal:6000/api
+ARG NEXT_PUBLIC_WEBSOCKET_URL=http://host.docker.internal:6000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}
+
+RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && \
+    echo "Building with NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}" && \
+    npm run build
 
 # Runtime stage
 FROM node:24-alpine
@@ -29,6 +36,10 @@ RUN npm install --production
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+
+# Set runtime environment variables
+ENV NEXT_PUBLIC_API_URL=http://host.docker.internal:6000/api
+ENV NEXT_PUBLIC_WEBSOCKET_URL=http://host.docker.internal:6000
 
 # Expose port
 EXPOSE 3000

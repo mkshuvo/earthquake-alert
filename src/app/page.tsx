@@ -12,7 +12,8 @@ import apiService from '../services/apiService';
 const Home: React.FC = () => {
   const [isMapView, setIsMapView] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const { setEarthquakes, setError, setLoading } = useEarthquakeStore();
+  const { setEarthquakes, setError, setLoading, earthquakes } = useEarthquakeStore();
+  const latestEarthquake = earthquakes.length > 0 ? earthquakes[0] : null;
 
   useEffect(() => {
     let pollingInterval: NodeJS.Timeout | null = null;
@@ -25,48 +26,15 @@ const Home: React.FC = () => {
         // Request notification permission
         await webSocketService.requestNotificationPermission();
         
-        // Set a timeout for WebSocket connection attempt (5 seconds max)
-        let wsConnected = false;
-        const wsPromise = webSocketService.connect()
-          .then(() => {
-            wsConnected = true;
-            console.log('WebSocket connected successfully');
-          })
-          .catch((wsError) => {
-            if (!wsConnected) {
-              console.warn('WebSocket connection failed, falling back to HTTP polling:', wsError);
-              setError('Real-time connection failed. Using fallback mode.');
-            }
-          });
-        
-        // Wait max 5 seconds for WebSocket, then proceed to fallback if needed
-        timeoutHandle = setTimeout(() => {
-          if (!wsConnected) {
-            console.warn('WebSocket connection timeout, falling back to HTTP polling');
-            setError('Real-time connection failed. Using fallback mode.');
-            loadInitialData();
-            pollingInterval = startPolling();
-            setLoading(false);
-            setIsConnecting(false);
-          }
-        }, 5000);
-        
-        // Wait for WebSocket attempt
-        await Promise.race([
-          wsPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
-        ]).catch(() => {
-          // If WebSocket fails, start polling
-          if (!wsConnected) {
-            loadInitialData();
-            pollingInterval = startPolling();
-          }
-        });
+        // Skip WebSocket - just use HTTP polling from the start
+        console.log('Using HTTP polling for earthquake data');
+        loadInitialData();
+        pollingInterval = startPolling();
+        setLoading(false);
+        setIsConnecting(false);
       } catch (error) {
         console.error('Failed to initialize app:', error);
         setError('Failed to initialize application');
-      } finally {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
         setLoading(false);
         setIsConnecting(false);
       }
@@ -147,6 +115,26 @@ const Home: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto p-4">
+        {/* Latest Earthquake Banner */}
+        {latestEarthquake && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg border border-blue-500 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="text-4xl">📍</div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Latest Earthquake</h2>
+                  <p className="text-blue-100">{latestEarthquake.location.place}</p>
+                  <p className="text-sm text-blue-200">{new Date(latestEarthquake.timestamp).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-5xl font-bold text-yellow-300">{latestEarthquake.magnitude}M</div>
+                <p className="text-blue-100">Depth: {latestEarthquake.depth}km</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">

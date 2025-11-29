@@ -7,10 +7,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "48291:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://ea-worker:8080/api
-      NEXT_PUBLIC_WEBSOCKET_URL: http://ea-worker:8080
+      NEXT_PUBLIC_API_URL: http://ea-worker:6000/api
+      NEXT_PUBLIC_WEBSOCKET_URL: http://ea-worker:6000
     networks:
       - earthquake_network
     healthcheck:
