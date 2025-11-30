@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 import { useFilteredEarthquakes, useIsLoading } from '../../store/earthquakeStore';
 import { EarthquakeEvent } from '../../store/earthquakeStore';
 
+// Truncate number to 1 decimal place (no rounding)
+const truncateToOneDecimal = (num: number): number => {
+  return Math.floor(num * 10) / 10;
+};
+
 const EarthquakeList: React.FC = () => {
   const earthquakes = useFilteredEarthquakes();
   const isLoading = useIsLoading();
@@ -77,7 +82,7 @@ const EarthquakeList: React.FC = () => {
                     <div className="flex items-center space-x-3 mb-2">
                       <div className={`w-4 h-4 rounded-full ${getMagnitudeColor(earthquake.magnitude)}`}></div>
                       <span className={`text-xl font-bold ${getMagnitudeTextColor(earthquake.magnitude)}`}>
-                        {earthquake.magnitude}M
+                        {truncateToOneDecimal(earthquake.magnitude).toFixed(1)}M
                       </span>
                       {earthquake.alert && (
                         <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">

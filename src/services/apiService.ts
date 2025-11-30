@@ -1,8 +1,13 @@
 import axios, { AxiosResponse } from 'axios';
 import { EarthquakeEvent, EarthquakeFilters } from '../store/earthquakeStore';
 
-const API_BASE_URL = '/api';
-const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
+// Server-side (Docker network) vs Client-side (Host network) URL
+// Managed solely through Docker Compose environment variables as requested
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  console.error('CRITICAL: NEXT_PUBLIC_API_URL is not defined. API calls will fail.');
+}
 
 if (typeof window !== 'undefined') {
   console.log('[ApiService] Initialized with API_BASE_URL:', API_BASE_URL);
@@ -27,7 +32,7 @@ interface HealthCheck {
   status: string;
   details: {
     database: string;
-    rabbitmq: string;
+    redis: string;
     mqtt: string;
     lastFetch: string;
     connectedClients: number;
@@ -96,32 +101,7 @@ class ApiService {
       }));
     } catch (error: any) {
       console.error(`[ApiService] FAILED to fetch from ${API_BASE_URL}:`, error.message);
-      throw error; // NO FALLBACK - fail hard so we know API is down
-    }
-  }
-
-  private async getFromUSGS(): Promise<EarthquakeEvent[]> {
-    try {
-      const response = await axios.get(USGS_URL, { timeout: 10000 });
-      const data = response.data;
-      if (!data.features) return [];
-      return data.features.map((feature: any) => ({
-        id: feature.id,
-        magnitude: feature.properties.mag || 0,
-        location: {
-          latitude: feature.geometry.coordinates[1],
-          longitude: feature.geometry.coordinates[0],
-          place: feature.properties.place || 'Unknown location',
-        },
-        depth: feature.geometry.coordinates[2] || 0,
-        timestamp: new Date(feature.properties.time),
-        url: feature.properties.url || '',
-        alert: feature.properties.alert,
-        tsunami: feature.properties.tsunami || 0,
-      })).filter((eq: EarthquakeEvent) => eq.magnitude > 0);
-    } catch (error) {
-      console.error('Failed to fetch from USGS:', error);
-      throw new Error('Unable to fetch earthquake data from any source');
+      throw error;
     }
   }
 
@@ -166,7 +146,7 @@ class ApiService {
   }
 
   // Method to get recent earthquakes for fallback when WebSocket is down
-  async getRecentEarthquakes(limit: number = 50): Promise<EarthquakeEvent[]> {
+  async getRecentEarthquakes(limit: number = 50, filters?: { location?: string }): Promise<EarthquakeEvent[]> {
     try {
       const endDate = new Date();
       const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000); // Last 24 hours
@@ -179,6 +159,10 @@ class ApiService {
       params.append('minMagnitude', '0');
       params.append('maxMagnitude', '10');
       
+      if (filters?.location) {
+        params.append('location', filters.location);
+      }
+
       try {
         console.log(`[ApiService] Fetching recent earthquakes from ${API_BASE_URL}`);
         const response: AxiosResponse<EarthquakeEvent[]> = await this.axiosInstance.get(
@@ -194,7 +178,7 @@ class ApiService {
         }));
       } catch (error: any) {
         console.error(`[ApiService] FAILED to fetch recent earthquakes from ${API_BASE_URL}:`, error.message);
-        throw error; // NO FALLBACK - fail hard
+        throw error;
       }
     } catch (error) {
       console.error('[ApiService] Failed to fetch recent earthquake data:', error);

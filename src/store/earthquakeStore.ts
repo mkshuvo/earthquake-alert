@@ -34,6 +34,9 @@ interface ServerStatus {
   isConnected: boolean;
   lastUpdate: Date | null;
   connectedClients: number;
+  socketConnected?: boolean;
+  mqttConnected?: boolean;
+  lastRealtimeUpdate?: Date | null;
 }
 
 interface EarthquakeStore {
@@ -165,4 +168,32 @@ export const useEarthquakeStats = () => {
         : 0,
     };
   }, [earthquakes]);
+};
+
+// Utility: compute nearest earthquake to a given lat/lng
+export const getNearestEarthquake = (
+  lat: number,
+  lng: number,
+  earthquakes: EarthquakeEvent[]
+) => {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
+    const R = 6371;
+    const dLat = toRad(bLat - aLat);
+    const dLng = toRad(bLng - aLng);
+    const lat1 = toRad(aLat);
+    const lat2 = toRad(bLat);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+
+  if (earthquakes.length === 0) return null;
+  const withDistance = earthquakes.map((eq) => ({
+    eq,
+    km: haversineKm(lat, lng, eq.location.latitude, eq.location.longitude),
+  }));
+  const nearest = withDistance.sort((a, b) => a.km - b.km)[0];
+  return nearest?.eq || null;
 };

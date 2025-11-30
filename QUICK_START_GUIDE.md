@@ -6,16 +6,17 @@
 
 ---
 
-## 🎯 Running Services
+## 🎯 Running Services (Randomized Host Ports)
 
 | Service | Port | URL | Status |
 |---------|------|-----|--------|
-| **Web Frontend** | 3000 | http://localhost:3000 | 🟢 Running |
-| **Backend API** | 6000 | http://localhost:6000/api | 🟢 Running |
+| **Web Frontend** | 3000 (host 48291) | http://localhost:48291 | 🟢 Running |
+| **Backend API** | 6000 (host 51763) | http://localhost:51763/api | 🟢 Running |
 | **MongoDB** | 43982 | localhost:43982 | 🟢 Running |
 | **RabbitMQ** | 42107 | amqp://localhost:42107 | 🟢 Running |
 | **RabbitMQ UI** | 49876 | http://localhost:49876 | 🟢 Running |
 | **EMQX MQTT** | 45329 | mqtt://localhost:45329 | 🟢 Running |
+| **EMQX MQTT WS** | 9001 (host 47754) | ws://localhost:47754 | 🟢 Running |
 | **EMQX Dashboard** | 18083 | http://localhost:18083 | 🟢 Running |
 | **RabbitMQ Consumer** | N/A | Microservice | 🟢 Running |
 
@@ -24,15 +25,16 @@
 ## 🔗 Quick Access Links
 
 ### User Interfaces
-- **Main Application:** http://localhost:3000
+- **Main Application:** http://localhost:48291
+- **Earthquake List:** http://localhost:48291/earthquakes
 - **RabbitMQ Management:** http://localhost:49876 (rabbit/rabbit)
 - **EMQX Dashboard:** http://localhost:18083
 
 ### API Endpoints
-- **Health Check:** http://localhost:6000/api/earthquakes/health
-- **List Earthquakes:** http://localhost:6000/api/earthquakes?limit=10
-- **Statistics:** http://localhost:6000/api/earthquakes/statistics
-- **Manual Fetch:** http://localhost:6000/api/earthquakes/fetch
+- **Health Check:** http://localhost:51763/api/earthquakes/health
+- **List Earthquakes:** http://localhost:51763/api/earthquakes?limit=10
+- **Statistics:** http://localhost:51763/api/earthquakes/statistics
+- **Manual Fetch:** http://localhost:51763/api/earthquakes/fetch
 
 ---
 
@@ -83,7 +85,7 @@ cd f:\projects\earthquake-detection\earthquake-alert
 # Start Next.js dev server
 npm run dev
 
-# Server will start on port 3000
+# Default dev server starts on port 3000 (host 48291 when containerized)
 # Wait for: "Ready in X.Xs"
 ```
 
@@ -289,8 +291,10 @@ curl "http://localhost:6000/api/earthquakes?limit=5"
 - **Location:** `f:\projects\earthquake-detection\earthquake-alert\.env`
 - **Key Settings:**
   ```
-  NEXT_PUBLIC_API_URL=http://localhost:6000/api
-  NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
+  NEXT_PUBLIC_API_URL=http://localhost:51763/api
+  NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:51763
+  NEXT_PUBLIC_MQTT_WS_URL=ws://localhost:47754
+  NEXT_PUBLIC_MQTT_TOPIC=alerts/earthquake
   ```
 
 ---
@@ -315,7 +319,7 @@ curl "http://localhost:6000/api/earthquakes?limit=5"
 - ✅ Email alerts for critical earthquakes (M >= 7.0)
 
 ### Frontend Features
-- ✅ Real-time earthquake display
+- ✅ Real-time earthquake display (socket.io with polling fallback)
 - ✅ Interactive map with Leaflet
 - ✅ List view with sorting
 - ✅ Multiple filters (magnitude, location, date)
@@ -331,7 +335,7 @@ curl "http://localhost:6000/api/earthquakes?limit=5"
 ### Quick Health Check
 ```bash
 # One command to check everything
-curl http://localhost:6000/api/earthquakes/health
+curl http://localhost:51763/api/earthquakes/health
 ```
 
 **Expected Response:**

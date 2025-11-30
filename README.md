@@ -1,15 +1,28 @@
-# Earthquake List
-![Earthquake List](https://github.com/mkshuvo/earthquake-alert/blob/19e911887b47bfe2ba01ca45ce70686785452ba9/demo.png?raw=true)
+# Earthquake Alert Web
 
-Earthquake events are very frequent these days. Here is a little effort to track them.
+Earthquake events are very frequent these days. This web app tracks them in near real‑time with a map, list, filters and alerts.
 
-# Run the following command to start the project
+## Run the project
 ```bash
 npm install
 npm run dev
 ```
 
-# Then open the following link to browse the application.
+## Open the app
+- Home (map + “Latest Near Me” banner): `http://localhost:3000/`
+- List screen: `http://localhost:3000/earthquakes`
+
+If running with randomized host ports, use:
+- Frontend: `http://localhost:48291`
+- List: `http://localhost:48291/earthquakes`
+
+## Environment
+Set the following environment variables for local dev:
 ```
-http://localhost:3000/
+NEXT_PUBLIC_API_URL=http://localhost:51763/api
+NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:51763
+NEXT_PUBLIC_MQTT_WS_URL=ws://localhost:47754
+NEXT_PUBLIC_MQTT_TOPIC=alerts/earthquake
 ```
+
+See `.env.example` for a complete template.

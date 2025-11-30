@@ -6,11 +6,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:51763/api
+        NEXT_PUBLIC_WEBSOCKET_URL: http://localhost:51763
     ports:
       - "48291:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://ea-worker:6000/api
-      NEXT_PUBLIC_WEBSOCKET_URL: http://ea-worker:6000
+      NEXT_PUBLIC_API_URL: http://localhost:51763/api
+      NEXT_PUBLIC_WEBSOCKET_URL: http://localhost:51763
+      BACKEND_HOST: ea-worker
+      BACKEND_PORT: 6000
     networks:
       - earthquake_network
     healthcheck:

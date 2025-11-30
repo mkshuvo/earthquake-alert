@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useEarthquakeStats } from '../../store/earthquakeStore';
 import apiService from '../../services/apiService';
 
+// Truncate number to 1 decimal place (no rounding)
+const truncateToOneDecimal = (num: number): number => {
+  return Math.floor(num * 10) / 10;
+};
+
 interface ServerStats {
   total: number;
   last24Hours: number;
@@ -101,7 +106,7 @@ const EarthquakeStats: React.FC = () => {
 
         <StatCard
           title="Average Magnitude"
-          value={clientStats.averageMagnitude.toFixed(1)}
+          value={truncateToOneDecimal(clientStats.averageMagnitude).toFixed(1)}
           icon="📏"
           color="text-purple-400"
         />

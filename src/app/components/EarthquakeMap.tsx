@@ -36,7 +36,7 @@ const EarthquakeMap: React.FC = () => {
 
   // Initialize map when earthquakes or user location changes
   useEffect(() => {
-    if (!mapRef.current || !earthquakes.length) return;
+    if (!mapRef.current) return;
 
     // Dynamically load Leaflet from CDN
     if (!(window as any).L) {
