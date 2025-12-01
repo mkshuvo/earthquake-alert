@@ -1,6 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useEarthquakes } from '../../store/earthquakeStore';
+import { MapPin, ArrowRight } from 'lucide-react';
+import clsx from 'clsx';
 
 const toRad = (v: number) => (v * Math.PI) / 180;
 const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
@@ -44,7 +46,6 @@ const LatestNearMeBanner: React.FC = () => {
   useEffect(() => {
     if (!userLoc || earthquakes.length === 0) return;
 
-    // compute nearest; prefer most recent among those within 500km, else nearest overall
     const withDistance = earthquakes.map((eq) => ({
       id: eq.id,
       place: eq.location.place,
@@ -56,46 +57,59 @@ const LatestNearMeBanner: React.FC = () => {
     }));
 
     const nearby = withDistance.filter((x) => x.km <= 500);
-    let pick: typeof withDistance[number] | null = null;
-    if (nearby.length > 0) {
-      pick = nearby.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-    } else {
-      pick = withDistance.sort((a, b) => a.km - b.km)[0] || null;
-    }
+    let pick = nearby.length > 0 
+      ? nearby.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0]
+      : withDistance.sort((a, b) => a.km - b.km)[0] || null;
+      
     setNearest(pick);
   }, [userLoc, earthquakes]);
 
   if (!nearest) return null;
 
   return (
-    <div className="mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg border border-blue-500 shadow-lg">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="text-4xl">📍</div>
+    <div className="mb-6 relative overflow-hidden rounded-xl border border-blue-500/30 group">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-blue-800/20 backdrop-blur-md"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <div className="relative p-6 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-blue-500/20 rounded-xl border border-blue-500/30">
+            <MapPin className="w-8 h-8 text-blue-400" />
+          </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Latest Near You</h2>
-            <p className="text-blue-100">{nearest.place}</p>
-            <p className="text-sm text-blue-200">
-              {nearest.timestamp.toLocaleString()} • {nearest.km.toFixed(0)} km away
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              Latest Near You
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/20 font-medium">
+                {nearest.km.toFixed(0)} km away
+              </span>
+            </h2>
+            <p className="text-blue-100 mt-1 text-lg">{nearest.place}</p>
+            <p className="text-sm text-blue-300 mt-1">
+              {nearest.timestamp.toLocaleString()}
             </p>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-5xl font-bold text-yellow-300">
-            {truncateToOneDecimal(nearest.magnitude).toFixed(1)}M
+
+        <div className="flex items-center gap-6 text-right">
+          <div>
+            <div className={clsx(
+              "text-4xl font-bold mb-1",
+              nearest.magnitude >= 5 ? "text-amber-400" : "text-emerald-400"
+            )}>
+              {truncateToOneDecimal(nearest.magnitude).toFixed(1)}M
+            </div>
+            <p className="text-blue-200 text-sm">Depth: {nearest.depth}km</p>
           </div>
-          <p className="text-blue-100">Depth: {nearest.depth}km</p>
+          
+          <a
+            href={nearest.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10 group-hover:border-white/20"
+          >
+            <ArrowRight className="w-5 h-5 text-white" />
+          </a>
         </div>
-      </div>
-      <div className="mt-2 text-right">
-        <a
-          href={nearest.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-200 hover:text-white underline text-sm"
-        >
-          View details
-        </a>
       </div>
     </div>
   );

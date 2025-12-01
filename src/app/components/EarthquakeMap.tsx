@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { useFilteredEarthquakes } from '../../store/earthquakeStore';
+import { Map, Maximize, MapPin } from 'lucide-react';
+import clsx from 'clsx';
 
 const EarthquakeMap: React.FC = () => {
   const earthquakes = useFilteredEarthquakes();
@@ -10,10 +12,10 @@ const EarthquakeMap: React.FC = () => {
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
 
   const getMagnitudeColor = (magnitude: number) => {
-    if (magnitude >= 7) return '#DC2626';
-    if (magnitude >= 5) return '#EA580C';
-    if (magnitude >= 3) return '#EAB308';
-    return '#16A34A';
+    if (magnitude >= 7) return '#EF4444'; // red-500
+    if (magnitude >= 5) return '#F97316'; // orange-500
+    if (magnitude >= 3) return '#EAB308'; // yellow-500
+    return '#10B981'; // emerald-500
   };
 
   // Get user location on mount
@@ -76,8 +78,9 @@ const EarthquakeMap: React.FC = () => {
 
     const map = L.map(mapRef.current).setView(center, 5);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    // Use CartoDB Dark Matter tiles for better dark mode integration
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxZoom: 19,
     }).addTo(map);
 
@@ -94,7 +97,7 @@ const EarthquakeMap: React.FC = () => {
           fillOpacity: 1,
         }
       ).addTo(map);
-      userMarker.bindPopup('<div class="text-sm"><strong>Your Location</strong></div>');
+      userMarker.bindPopup('<div class="text-slate-900 text-sm font-sans"><strong>Your Location</strong></div>');
     }
 
     // Add earthquake markers
@@ -109,7 +112,7 @@ const EarthquakeMap: React.FC = () => {
           fillColor: color,
           fillOpacity: 0.2,
           radius: Math.pow(10, earthquake.magnitude) * 1000,
-          weight: 2,
+          weight: 1,
         }
       ).addTo(map);
 
@@ -117,22 +120,26 @@ const EarthquakeMap: React.FC = () => {
       const marker = L.circleMarker(
         [earthquake.location.latitude, earthquake.location.longitude],
         {
-          radius: 15,
+          radius: 8,
           fillColor: color,
-          color: 'white',
-          weight: 3,
+          color: '#1e293b', // slate-900
+          weight: 2,
           opacity: 1,
           fillOpacity: 0.9,
         }
       ).addTo(map);
 
-      // Add popup
+      // Add popup with custom styling
       marker.bindPopup(`
-        <div class="text-sm">
-          <strong>${earthquake.magnitude}M</strong><br/>
-          ${earthquake.location.place}<br/>
-          Depth: ${earthquake.depth}km<br/>
-          ${new Date(earthquake.timestamp).toLocaleString()}
+        <div class="text-slate-900 font-sans min-w-[150px]">
+          <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
+            <strong class="text-lg" style="color: ${color}">${earthquake.magnitude.toFixed(1)}M</strong>
+            <span class="text-xs text-slate-500">${earthquake.depth}km depth</span>
+          </div>
+          <div class="text-sm font-medium text-slate-700 mb-1">${earthquake.location.place}</div>
+          <div class="text-xs text-slate-500">
+            ${new Date(earthquake.timestamp).toLocaleString()}
+          </div>
         </div>
       `);
 
@@ -144,92 +151,85 @@ const EarthquakeMap: React.FC = () => {
     mapInstanceRef.current = map;
   };
 
-  const selectedEarthquakeData = earthquakes.find(eq => eq.id === selectedEarthquake);
-
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-white">🗺️ Earthquake Map</h2>
-        <div className="text-sm text-gray-400">
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700 backdrop-blur-sm overflow-hidden">
+      <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Map className="w-5 h-5 text-blue-400" />
+          <h2 className="font-bold text-white">Earthquake Map</h2>
+        </div>
+        <div className="text-sm text-slate-400 font-medium">
           Showing {earthquakes.length} earthquakes
         </div>
       </div>
 
       {/* Leaflet Map Container */}
-      <div
-        ref={mapRef}
-        className="relative bg-gray-900 rounded-lg h-96 border border-gray-600 mb-4"
-        style={{ minHeight: '400px' }}
-      />
-
-      {/* Map Legend */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="text-sm text-gray-400">Magnitude:</div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-xs text-gray-400">0-3</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <span className="text-xs text-gray-400">3-5</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-            <span className="text-xs text-gray-400">5-7</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-5 h-5 bg-red-500 rounded-full"></div>
-            <span className="text-xs text-gray-400">7+</span>
-          </div>
-        </div>
-
-        <button
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors"
-          onClick={() => {
-            if (userLocation && mapInstanceRef.current) {
-              mapInstanceRef.current.setView(
-                [userLocation.lat, userLocation.lng],
-                10
-              );
-            } else if (earthquakes.length > 0 && mapInstanceRef.current) {
-              const latest = earthquakes[0];
-              mapInstanceRef.current.setView(
-                [latest.location.latitude, latest.location.longitude],
-                8
-              );
-            }
-          }}
-        >
-          {userLocation ? 'Center on Me' : 'Center on Latest'}
-        </button>
-      </div>
-
-      {/* Selected earthquake details */}
-      {selectedEarthquakeData && (
-        <div className="mt-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
-          <h3 className="font-medium text-white mb-2">Selected Earthquake</h3>
-          <div className="text-sm text-gray-300 space-y-1">
-            <div><strong>Magnitude:</strong> {selectedEarthquakeData.magnitude}M</div>
-            <div><strong>Location:</strong> {selectedEarthquakeData.location.place}</div>
-            <div><strong>Depth:</strong> {selectedEarthquakeData.depth}km</div>
-            <div><strong>Time:</strong> {new Date(selectedEarthquakeData.timestamp).toLocaleString()}</div>
-            {selectedEarthquakeData.alert && (
-              <div><strong>Alert:</strong> <span className="text-yellow-400">{selectedEarthquakeData.alert}</span></div>
-            )}
-            <div className="mt-2">
-              <a
-                href={selectedEarthquakeData.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 underline"
-              >
-                View Details
-              </a>
+      <div className="relative h-[500px] w-full bg-slate-900">
+        <div
+          ref={mapRef}
+          className="absolute inset-0 z-0"
+        />
+        
+        {/* Custom Map Controls Overlay */}
+        <div className="absolute bottom-4 left-4 right-4 z-[400] flex items-end justify-between pointer-events-none">
+          {/* Legend */}
+          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-lg p-3 pointer-events-auto shadow-xl">
+            <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">Magnitude</div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-emerald-500/20"></div>
+                <span className="text-xs text-slate-300 font-medium">0-3</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full ring-2 ring-yellow-500/20"></div>
+                <span className="text-xs text-slate-300 font-medium">3-5</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-orange-500 rounded-full ring-2 ring-orange-500/20"></div>
+                <span className="text-xs text-slate-300 font-medium">5-7</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-red-500/20"></div>
+                <span className="text-xs text-slate-300 font-medium">7+</span>
+              </div>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 pointer-events-auto">
+             <button
+              onClick={() => {
+                if (userLocation && mapInstanceRef.current) {
+                  mapInstanceRef.current.setView(
+                    [userLocation.lat, userLocation.lng],
+                    8
+                  );
+                }
+              }}
+              className="p-2 bg-slate-900/90 backdrop-blur-md border border-slate-700 hover:bg-slate-800 text-blue-400 rounded-lg shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!userLocation}
+              title="Go to my location"
+            >
+              <MapPin className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                 if (earthquakes.length > 0 && mapInstanceRef.current) {
+                  const latest = earthquakes[0];
+                  mapInstanceRef.current.setView(
+                    [latest.location.latitude, latest.location.longitude],
+                    6
+                  );
+                }
+              }}
+              className="p-2 bg-slate-900/90 backdrop-blur-md border border-slate-700 hover:bg-slate-800 text-slate-300 rounded-lg shadow-xl transition-all"
+              title="Center on latest earthquake"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

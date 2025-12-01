@@ -177,6 +177,9 @@ export const useEarthquakeStats = () => {
       averageMagnitude: earthquakes.length > 0 
         ? earthquakes.reduce((sum, eq) => sum + eq.magnitude, 0) / earthquakes.length 
         : 0,
+      maxMagnitude: earthquakes.length > 0 
+        ? Math.max(...earthquakes.map(eq => eq.magnitude)) 
+        : 0,
     };
   }, [earthquakes]);
 };

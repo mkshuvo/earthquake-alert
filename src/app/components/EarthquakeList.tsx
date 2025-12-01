@@ -1,11 +1,19 @@
 'use client';
 import React, { useState } from 'react';
 import { useFilteredEarthquakes, useIsLoading } from '../../store/earthquakeStore';
-import { EarthquakeEvent } from '../../store/earthquakeStore';
+import { Waves, Clock, ArrowUpRight } from 'lucide-react';
+import clsx from 'clsx';
 
 // Truncate number to 1 decimal place (no rounding)
 const truncateToOneDecimal = (num: number): number => {
   return Math.floor(num * 10) / 10;
+};
+
+const getMagnitudeColorClass = (magnitude: number) => {
+  if (magnitude >= 7) return 'text-red-500 bg-red-500/10 border-red-500/20';
+  if (magnitude >= 5) return 'text-orange-500 bg-orange-500/10 border-orange-500/20';
+  if (magnitude >= 3) return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
+  return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
 };
 
 const EarthquakeList: React.FC = () => {
@@ -13,41 +21,12 @@ const EarthquakeList: React.FC = () => {
   const isLoading = useIsLoading();
   const [selectedEarthquake, setSelectedEarthquake] = useState<string | null>(null);
 
-  const getGoogleMapsLink = (lat: number, lng: number) => {
-    return `https://www.google.com/maps?q=${lat},${lng}`;
-  };
-
-  const getMagnitudeColor = (magnitude: number) => {
-    if (magnitude >= 7) return 'bg-red-500';
-    if (magnitude >= 5) return 'bg-orange-500';
-    if (magnitude >= 3) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-
-  const getMagnitudeTextColor = (magnitude: number) => {
-    if (magnitude >= 7) return 'text-red-400';
-    if (magnitude >= 5) return 'text-orange-400';
-    if (magnitude >= 3) return 'text-yellow-400';
-    return 'text-green-400';
-  };
-
-  const formatTimestamp = (timestamp: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(timestamp).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
-  };
-
   if (isLoading) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 backdrop-blur-sm">
         <div className="animate-pulse space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-700 rounded"></div>
+            <div key={i} className="h-20 bg-slate-700/50 rounded-xl"></div>
           ))}
         </div>
       </div>
@@ -55,76 +34,74 @@ const EarthquakeList: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700">
-      <div className="p-6 border-b border-gray-700">
-        <h2 className="text-xl font-semibold text-white">📋 Recent Earthquakes</h2>
-        <div className="text-sm text-gray-400 mt-2">
-          {earthquakes.length} earthquake{earthquakes.length !== 1 ? 's' : ''} found
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700 backdrop-blur-sm flex flex-col h-[600px]">
+      <div className="p-6 border-b border-slate-700/50 shrink-0">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Waves className="w-5 h-5 text-blue-400" />
+          Recent Activity
+        </h2>
+        <div className="text-sm text-slate-400 mt-1">
+          {earthquakes.length} events detected
         </div>
       </div>
       
-      <div className="p-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
         {earthquakes.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">🌍</div>
-            <h3 className="text-lg font-medium text-white mb-2">No earthquakes found</h3>
-            <p className="text-gray-400">Check back later for earthquake data.</p>
+            <Waves className="w-12 h-12 text-slate-600 mx-auto mb-4 opacity-50" />
+            <h3 className="text-lg font-medium text-slate-300 mb-2">No earthquakes found</h3>
+            <p className="text-slate-500 text-sm">Adjust filters to see more data.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {earthquakes.map((earthquake) => (
-              <div
-                key={earthquake.id}
-                className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-all"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className={`w-4 h-4 rounded-full ${getMagnitudeColor(earthquake.magnitude)}`}></div>
-                      <span className={`text-xl font-bold ${getMagnitudeTextColor(earthquake.magnitude)}`}>
-                        {truncateToOneDecimal(earthquake.magnitude).toFixed(1)}M
+          earthquakes.map((eq) => (
+            <div 
+              key={eq.id}
+              className="group bg-slate-900/40 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 p-3 rounded-xl transition-all cursor-pointer relative overflow-hidden"
+              onClick={() => window.open(eq.url, '_blank')}
+            >
+              <div className="flex justify-between items-start gap-3 relative z-10">
+                <div className={clsx(
+                  "flex flex-col items-center justify-center min-w-[3.5rem] h-14 rounded-lg border",
+                  getMagnitudeColorClass(eq.magnitude)
+                )}>
+                  <span className="text-lg font-bold leading-none">{truncateToOneDecimal(eq.magnitude).toFixed(1)}</span>
+                  <span className="text-[10px] opacity-75 mt-1">MAG</span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-sm font-medium text-slate-200 truncate group-hover:text-white transition-colors">
+                      {eq.location.place}
+                    </h4>
+                    {eq.alert && (
+                      <span className={clsx(
+                        "px-1.5 py-0.5 text-[10px] uppercase font-bold rounded border",
+                        eq.alert === 'red' ? "bg-red-500/20 text-red-400 border-red-500/30" :
+                        eq.alert === 'orange' ? "bg-orange-500/20 text-orange-400 border-orange-500/30" :
+                        eq.alert === 'yellow' ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" :
+                        "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                      )}>
+                        {eq.alert}
                       </span>
-                      {earthquake.alert && (
-                        <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">
-                          {earthquake.alert.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    
-                    <h3 className="text-white font-medium mb-1">
-                      {earthquake.location.place}
-                    </h3>
-                    
-                    <div className="text-sm text-gray-400 space-y-1">
-                      <div>📍 {earthquake.location.latitude.toFixed(3)}, {earthquake.location.longitude.toFixed(3)}</div>
-                      <div>⬇️ Depth: {earthquake.depth}km</div>
-                      <div>🕐 {formatTimestamp(earthquake.timestamp)}</div>
-                    </div>
+                    )}
                   </div>
                   
-                  <div className="flex flex-col items-end space-y-2">
-                    <a
-                      href={getGoogleMapsLink(earthquake.location.latitude, earthquake.location.longitude)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded transition-colors"
-                    >
-                      📍 Map
-                    </a>
-                    
-                    <a
-                      href={earthquake.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs rounded transition-colors"
-                    >
-                      📊 Details
-                    </a>
+                  <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <div className="flex items-center gap-1">
+                      <Waves className="w-3 h-3" />
+                      <span>{eq.depth}km</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{new Date(eq.timestamp).toLocaleTimeString()}</span>
+                    </div>
                   </div>
                 </div>
+
+                <ArrowUpRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
               </div>
-            ))}
-          </div>
+            </div>
+          ))
         )}
       </div>
     </div>

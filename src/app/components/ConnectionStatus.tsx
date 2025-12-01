@@ -1,41 +1,30 @@
 import React from 'react';
-import { useServerStatus, useError } from '../../store/earthquakeStore';
+import { useServerStatus } from '../../store/earthquakeStore';
+import { Wifi, WifiOff, Users } from 'lucide-react';
+import clsx from 'clsx';
 
 const ConnectionStatus: React.FC = () => {
   const serverStatus = useServerStatus();
-  const error = useError();
-
-  const getStatusColor = () => {
-    if (serverStatus.isConnected) return 'text-green-400';
-    return 'text-blue-400'; // Show blue for polling mode
-  };
-
-  const getStatusIcon = () => {
-    if (serverStatus.isConnected) return '🟢';
-    return '📡'; // Show antenna for polling
-  };
-
-  const getStatusText = () => {
-    if (serverStatus.isConnected) return 'Connected';
-    return 'Polling'; // Show polling instead of connecting
-  };
+  const { isConnected, socketConnected, connectedClients, lastUpdate } = serverStatus;
 
   return (
-    <div className="flex items-center space-x-2">
-      <span className={`text-sm font-medium ${getStatusColor()}`}>
-        {getStatusIcon()} {getStatusText()}
-      </span>
-      
-      {serverStatus.lastUpdate && (
-        <span className="text-xs text-gray-400">
-          Last update: {serverStatus.lastUpdate.toLocaleTimeString()}
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 backdrop-blur-sm">
+        {isConnected ? (
+          <Wifi className={clsx("w-4 h-4", socketConnected ? "text-emerald-400" : "text-amber-400")} />
+        ) : (
+          <WifiOff className="w-4 h-4 text-red-400" />
+        )}
+        <span className={clsx("text-xs font-medium", isConnected ? "text-emerald-400" : "text-red-400")}>
+          {isConnected ? (socketConnected ? 'Realtime' : 'Polling') : 'Disconnected'}
         </span>
-      )}
-      
-      {serverStatus.connectedClients > 0 && (
-        <span className="text-xs text-blue-400">
-          ({serverStatus.connectedClients} clients)
-        </span>
+      </div>
+
+      {connectedClients > 0 && (
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-slate-700 backdrop-blur-sm text-slate-400">
+          <Users className="w-3 h-3" />
+          <span className="text-xs font-medium">{connectedClients} online</span>
+        </div>
       )}
     </div>
   );
