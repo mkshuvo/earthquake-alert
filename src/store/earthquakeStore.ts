@@ -180,6 +180,10 @@ export const useEarthquakeStats = () => {
       maxMagnitude: earthquakes.length > 0 
         ? Math.max(...earthquakes.map(eq => eq.magnitude)) 
         : 0,
+      avgDepth: earthquakes.length > 0
+        ? earthquakes.reduce((sum, eq) => sum + eq.depth, 0) / earthquakes.length
+        : 0,
+      tsunamiCount: earthquakes.filter(eq => eq.tsunami === 1).length,
     };
   }, [earthquakes]);
 };

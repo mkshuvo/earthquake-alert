@@ -1,60 +1,66 @@
-import React, { useState } from 'react';
-import { useFilters, useEarthquakeStore } from '../../store/earthquakeStore';
-import { Filter, ChevronDown, ChevronUp, MapPin, Calendar, Activity } from 'lucide-react';
+'use client';
 
-const FilterPanel: React.FC = () => {
+import { Filter, SlidersHorizontal, MapPin, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { useEarthquakeStore, useFilters } from '../../store/earthquakeStore';
+
+export default function FilterPanel() {
+  const [isExpanded, setIsExpanded] = useState(false);
   const filters = useFilters();
-  const { setFilters } = useEarthquakeStore();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const setFilters = useEarthquakeStore((state) => state.setFilters);
 
   const handleFilterChange = (key: string, value: any) => {
-    setFilters({ [key]: value });
+    setFilters({ ...filters, [key]: value });
   };
 
+  const limits = [10, 25, 50, 100, 250, 500];
+
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 backdrop-blur-sm overflow-hidden transition-all hover:border-slate-600">
-      <div 
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/50 transition-colors"
-        onClick={() => setIsCollapsed(!isCollapsed)}
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-6 py-4 flex items-center justify-between text-white hover:bg-slate-700/30 transition-colors"
       >
-        <div className="flex items-center gap-2 text-slate-200">
-          <Filter className="w-4 h-4 text-emerald-400" />
-          <h3 className="font-semibold">Filters</h3>
+        <div className="flex items-center gap-3">
+          <SlidersHorizontal className="w-5 h-5 text-cyan-400" />
+          <span className="font-semibold">Filters & Sorting</span>
         </div>
-        {isCollapsed ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
-      </div>
-      
-      {!isCollapsed && (
-        <div className="p-4 pt-0 space-y-4">
-          {/* Magnitude Range */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
-              <Activity className="w-3 h-3" />
-              Magnitude Range
+        <Filter className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          isExpanded ? 'max-h-[800px]' : 'max-h-0'
+        }`}
+      >
+        <div className="px-6 py-4 space-y-6 border-t border-slate-700/50">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-3">
+              Magnitude Range: {filters.minMagnitude.toFixed(1)} - {filters.maxMagnitude.toFixed(1)}
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <div>
-                <label className="block text-xs text-slate-500 mb-1">Min</label>
+                <label className="text-xs text-slate-400 mb-1 block">Minimum</label>
                 <input
-                  type="number"
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.1"
                   value={filters.minMagnitude}
-                  onChange={(e) => handleFilterChange('minMagnitude', parseFloat(e.target.value) || 0)}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
+                  onChange={(e) => handleFilterChange('minMagnitude', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-500 mb-1">Max</label>
+                <label className="text-xs text-slate-400 mb-1 block">Maximum</label>
                 <input
-                  type="number"
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.1"
                   value={filters.maxMagnitude}
-                  onChange={(e) => handleFilterChange('maxMagnitude', parseFloat(e.target.value) || 0)}
-                  min={0}
-                  max={10}
-                  step={0.1}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
+                  onChange={(e) => handleFilterChange('maxMagnitude', parseFloat(e.target.value))}
+                  className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                 />
               </div>
             </div>
@@ -71,11 +77,11 @@ const FilterPanel: React.FC = () => {
               value={filters.location}
               onChange={(e) => handleFilterChange('location', e.target.value)}
               placeholder="Search places..."
-              className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50"
+              className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
             />
           </div>
 
-          {/* Date Range - Optional if implemented in store */}
+          {/* Date Range */}
           <div className="space-y-2">
              <label className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
               <Calendar className="w-3 h-3" />
@@ -86,20 +92,37 @@ const FilterPanel: React.FC = () => {
                   type="date" 
                   value={filters.startDate}
                   onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-emerald-500/50"
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-cyan-500/50"
                 />
                 <input 
                   type="date"
                   value={filters.endDate}
                   onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-emerald-500/50"
+                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 text-xs focus:outline-none focus:border-cyan-500/50"
                 />
              </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Results Limit</label>
+            <div className="grid grid-cols-3 gap-2">
+              {limits.map((limit) => (
+                <button
+                  key={limit}
+                  onClick={() => handleFilterChange('limit', limit)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    filters.limit === limit
+                      ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50'
+                  }`}
+                >
+                  {limit}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default FilterPanel;
+}
