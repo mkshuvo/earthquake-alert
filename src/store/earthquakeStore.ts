@@ -79,17 +79,28 @@ export const useEarthquakeStore = create<EarthquakeStore>()(
     isLoading: false,
     error: null,
 
-    setEarthquakes: (earthquakes) =>
-      set({ earthquakes, error: null }),
+    setEarthquakes: (earthquakes) => {
+      // Deduplicate incoming earthquakes based on ID
+      const uniqueEarthquakes = Array.from(
+        new Map(earthquakes.map(eq => [eq.id, eq])).values()
+      );
+      set({ earthquakes: uniqueEarthquakes, error: null });
+    },
 
     addEarthquake: (earthquake) =>
       set((state) => {
-        // Check if earthquake already exists
-        const exists = state.earthquakes.some(eq => eq.id === earthquake.id);
-        if (exists) return state;
+        const index = state.earthquakes.findIndex(eq => eq.id === earthquake.id);
         
-        // Add new earthquake and sort by timestamp (newest first)
-        const newEarthquakes = [earthquake, ...state.earthquakes]
+        let newEarthquakes;
+        if (index !== -1) {
+             newEarthquakes = [...state.earthquakes];
+             newEarthquakes[index] = earthquake;
+        } else {
+             newEarthquakes = [earthquake, ...state.earthquakes];
+        }
+        
+        // Sort and slice
+        newEarthquakes = newEarthquakes
           .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
           .slice(0, 1000); // Keep only latest 1000 earthquakes
 
