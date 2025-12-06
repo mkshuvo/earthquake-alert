@@ -3,6 +3,7 @@
 import { Filter, SlidersHorizontal, MapPin, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import { useEarthquakeStore, useFilters } from '../../store/earthquakeStore';
+import { truncateMagnitude } from '../../utils/format';
 
 export default function FilterPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -36,7 +37,7 @@ export default function FilterPanel() {
         <div className="px-6 py-4 space-y-6 border-t border-slate-700/50">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-3">
-              Magnitude Range: {filters.minMagnitude.toFixed(1)} - {filters.maxMagnitude.toFixed(1)}
+              Magnitude Range: {truncateMagnitude(filters.minMagnitude)} - {truncateMagnitude(filters.maxMagnitude)}
             </label>
             <div className="space-y-3">
               <div>

@@ -34,4 +34,4 @@
     [x] Backend Integration Test: Verify `/search` returns correct filtered data
     [x] Frontend Test: Verify URL updates when filters change
     [x] Frontend Test: Verify Pagination works
-    [ ] Manual Verification: Check Map pins update with search results
+    [x] Manual Verification: Check Map pins update with search results

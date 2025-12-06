@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useFilteredEarthquakes, EarthquakeEvent } from '../../store/earthquakeStore';
 import { Map, Maximize, MapPin } from 'lucide-react';
 import clsx from 'clsx';
+import { truncateMagnitude } from '../../utils/format';
 
 interface EarthquakeMapProps {
   earthquakes?: EarthquakeEvent[];
@@ -168,7 +169,7 @@ const EarthquakeMap: React.FC<EarthquakeMapProps> = ({ earthquakes: propEarthqua
       marker.bindPopup(`
         <div class="text-slate-900 font-sans min-w-[150px]">
           <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
-            <strong class="text-lg" style="color: ${color}">${earthquake.magnitude.toFixed(1)}M</strong>
+            <strong class="text-lg" style="color: ${color}">${truncateMagnitude(earthquake.magnitude)}M</strong>
             <span class="text-xs text-slate-500">${earthquake.depth}km depth</span>
           </div>
           <div class="text-sm font-medium text-slate-700 mb-1">${earthquake.location.place}</div>

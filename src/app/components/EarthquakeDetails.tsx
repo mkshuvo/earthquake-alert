@@ -3,6 +3,7 @@
 import { EarthquakeEvent } from '../../store/earthquakeStore';
 import { X, MapPin, Clock, Activity, Layers, TrendingUp, ExternalLink, AlertCircle, Waves } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { truncateMagnitude } from '../../utils/format';
 
 interface EarthquakeDetailsProps {
   earthquake: EarthquakeEvent;
@@ -73,7 +74,7 @@ export const EarthquakeDetails = ({ earthquake, onClose }: EarthquakeDetailsProp
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjEiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
 
           <div className="relative h-full flex flex-col items-center justify-center text-white p-6">
-            <div className="text-6xl font-bold mb-2">{earthquake.magnitude.toFixed(2)}</div>
+            <div className="text-6xl font-bold mb-2">{truncateMagnitude(earthquake.magnitude)}</div>
             <div className="text-xl font-medium uppercase tracking-wider">Magnitude</div>
             {earthquake.tsunami === 1 && (
                <div className="mt-2 px-3 py-1 bg-red-500/20 rounded-full text-sm backdrop-blur-sm flex items-center gap-2">

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useEarthquakes } from '../../store/earthquakeStore';
 import { MapPin, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
+import { truncateMagnitude } from '../../utils/format';
 
 const toRad = (v: number) => (v * Math.PI) / 180;
 const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => {
@@ -16,8 +17,6 @@ const haversineKm = (aLat: number, aLng: number, bLat: number, bLng: number) => 
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 };
-
-const truncateToOneDecimal = (num: number): number => Math.floor(num * 10) / 10;
 
 const LatestNearMeBanner: React.FC = () => {
   const earthquakes = useEarthquakes();
@@ -96,7 +95,7 @@ const LatestNearMeBanner: React.FC = () => {
               "text-4xl font-bold mb-1",
               nearest.magnitude >= 5 ? "text-amber-400" : "text-emerald-400"
             )}>
-              {truncateToOneDecimal(nearest.magnitude).toFixed(1)}M
+              {truncateMagnitude(nearest.magnitude)}M
             </div>
             <p className="text-blue-200 text-sm">Depth: {nearest.depth}km</p>
           </div>

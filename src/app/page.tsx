@@ -12,6 +12,7 @@ import { EarthquakeCard } from './components/EarthquakeCard';
 import { EarthquakeDetails } from './components/EarthquakeDetails';
 import ConnectionStatus from './components/ConnectionStatus';
 import Link from 'next/link';
+import { truncateMagnitude } from '../utils/format';
 
 export default function Home() {
   const { isConnecting } = useAppInitialization();
@@ -104,7 +105,7 @@ export default function Home() {
           />
           <StatCard
             title="Max Magnitude"
-            value={stats.maxMagnitude.toFixed(1)}
+            value={truncateMagnitude(stats.maxMagnitude)}
             icon={TrendingUp}
             color="red"
             delay={200}

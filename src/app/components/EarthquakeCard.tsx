@@ -3,6 +3,7 @@
 import { EarthquakeEvent } from '../../store/earthquakeStore';
 import { MapPin, Clock, Activity, AlertTriangle, Waves, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
+import { truncateMagnitude } from '../../utils/format';
 
 interface EarthquakeCardProps {
   earthquake: EarthquakeEvent;
@@ -87,7 +88,7 @@ export const EarthquakeCard = ({ earthquake, index, onSelect }: EarthquakeCardPr
           }}
         >
           <div className="text-center">
-            <div className="text-2xl font-bold text-white">{earthquake.magnitude.toFixed(1)}</div>
+            <div className="text-2xl font-bold text-white">{truncateMagnitude(earthquake.magnitude)}</div>
             <div className="text-xs text-white/80 uppercase">MAG</div>
           </div>
         </div>
@@ -123,7 +124,7 @@ export const EarthquakeCard = ({ earthquake, index, onSelect }: EarthquakeCardPr
               <div className="flex items-center gap-1">
                 <Activity className="w-4 h-4 text-slate-400" />
                 <span className={`font-medium ${getMagnitudeTextColor(earthquake.magnitude)}`}>
-                  Magnitude {earthquake.magnitude.toFixed(2)}
+                  Magnitude {truncateMagnitude(earthquake.magnitude)}
                 </span>
               </div>
               {/* Assuming sig is not available in current model, skipping for now or adding logic if needed */}
