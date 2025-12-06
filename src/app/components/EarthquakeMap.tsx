@@ -1,14 +1,20 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
-import { useFilteredEarthquakes } from '../../store/earthquakeStore';
+import { useFilteredEarthquakes, EarthquakeEvent } from '../../store/earthquakeStore';
 import { Map, Maximize, MapPin } from 'lucide-react';
 import clsx from 'clsx';
 
-const EarthquakeMap: React.FC = () => {
-  const earthquakes = useFilteredEarthquakes();
+interface EarthquakeMapProps {
+  earthquakes?: EarthquakeEvent[];
+}
+
+const EarthquakeMap: React.FC<EarthquakeMapProps> = ({ earthquakes: propEarthquakes }) => {
+  const storeEarthquakes = useFilteredEarthquakes();
+  const earthquakes = propEarthquakes || storeEarthquakes;
   const [selectedEarthquake, setSelectedEarthquake] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const markersLayerRef = useRef<any>(null);
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
 
   const getMagnitudeColor = (magnitude: number) => {
@@ -36,11 +42,11 @@ const EarthquakeMap: React.FC = () => {
     }
   }, []);
 
-  // Initialize map when earthquakes or user location changes
+  // Initialize map ONCE
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || (window as any).mapInitialized) return;
 
-    // Dynamically load Leaflet from CDN
+    // Dynamically load Leaflet from CDN if not present
     if (!(window as any).L) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -55,38 +61,67 @@ const EarthquakeMap: React.FC = () => {
     } else {
       initializeMap();
     }
-  }, [earthquakes, userLocation]);
+    
+    (window as any).mapInitialized = true;
+    
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        (window as any).mapInitialized = false;
+      }
+    };
+  }, []);
+
+  // Update markers when earthquakes change
+  useEffect(() => {
+    updateMarkers();
+  }, [earthquakes]);
+
+  // Update map view when user location is found (only once if needed, or add button to center)
+  useEffect(() => {
+    if (userLocation && mapInstanceRef.current) {
+      const L = (window as any).L;
+      // Add or update user location marker
+      // For now, just adding it to the map directly or a separate layer
+      // We can keep it simple
+    }
+  }, [userLocation]);
 
   const initializeMap = () => {
     const L = (window as any).L;
-    if (!L || !mapRef.current) return;
+    if (!L || !mapRef.current || mapInstanceRef.current) return;
 
-    // Destroy existing map if it exists
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-    }
+    // Default center
+    const center: [number, number] = userLocation 
+      ? [userLocation.lat, userLocation.lng] 
+      : [20, 0];
 
-    // Center on user location if available, otherwise on first earthquake or world
-    let center: [number, number];
-    if (userLocation) {
-      center = [userLocation.lat, userLocation.lng];
-    } else if (earthquakes.length > 0) {
-      center = [earthquakes[0].location.latitude, earthquakes[0].location.longitude];
-    } else {
-      center = [20, 0];
-    }
+    const map = L.map(mapRef.current).setView(center, userLocation ? 6 : 2);
 
-    const map = L.map(mapRef.current).setView(center, 5);
-
-    // Use CartoDB Dark Matter tiles for better dark mode integration
+    // Use CartoDB Dark Matter tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxZoom: 19,
     }).addTo(map);
 
+    // Create layer group for markers
+    markersLayerRef.current = L.layerGroup().addTo(map);
+    mapInstanceRef.current = map;
+    
+    // Initial markers update
+    updateMarkers();
+  };
+
+  const updateMarkers = () => {
+    const L = (window as any).L;
+    if (!L || !mapInstanceRef.current || !markersLayerRef.current) return;
+
+    markersLayerRef.current.clearLayers();
+
     // Add user location marker if available
     if (userLocation) {
-      const userMarker = L.circleMarker(
+       const userMarker = L.circleMarker(
         [userLocation.lat, userLocation.lng],
         {
           radius: 8,
@@ -96,16 +131,16 @@ const EarthquakeMap: React.FC = () => {
           opacity: 1,
           fillOpacity: 1,
         }
-      ).addTo(map);
+      );
       userMarker.bindPopup('<div class="text-slate-900 text-sm font-sans"><strong>Your Location</strong></div>');
+      markersLayerRef.current.addLayer(userMarker);
     }
 
-    // Add earthquake markers
     earthquakes.forEach((earthquake) => {
       const color = getMagnitudeColor(earthquake.magnitude);
 
-      // Create circle ripple effect
-      L.circle(
+      // Ripple effect
+      const ripple = L.circle(
         [earthquake.location.latitude, earthquake.location.longitude],
         {
           color: color,
@@ -114,22 +149,22 @@ const EarthquakeMap: React.FC = () => {
           radius: Math.pow(10, earthquake.magnitude) * 1000,
           weight: 1,
         }
-      ).addTo(map);
+      );
+      markersLayerRef.current.addLayer(ripple);
 
-      // Create marker
+      // Marker
       const marker = L.circleMarker(
         [earthquake.location.latitude, earthquake.location.longitude],
         {
           radius: 8,
           fillColor: color,
-          color: '#1e293b', // slate-900
+          color: '#1e293b',
           weight: 2,
           opacity: 1,
           fillOpacity: 0.9,
         }
-      ).addTo(map);
+      );
 
-      // Add popup with custom styling
       marker.bindPopup(`
         <div class="text-slate-900 font-sans min-w-[150px]">
           <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-200">
@@ -146,9 +181,9 @@ const EarthquakeMap: React.FC = () => {
       marker.on('click', () => {
         setSelectedEarthquake(earthquake.id);
       });
+      
+      markersLayerRef.current.addLayer(marker);
     });
-
-    mapInstanceRef.current = map;
   };
 
   return (

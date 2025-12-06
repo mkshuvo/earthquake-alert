@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, TrendingUp, AlertTriangle, Layers, Waves, RefreshCw } from 'lucide-react';
+import { Activity, TrendingUp, AlertTriangle, Layers, Waves, RefreshCw, Search } from 'lucide-react';
 import { useAppInitialization } from '../hooks/useAppInitialization';
 import { useEarthquakeStore, useFilteredEarthquakes, useEarthquakeStats, EarthquakeEvent } from '../store/earthquakeStore';
 import ParallaxBackground from './components/ParallaxBackground';
 import StatCard from './components/StatCard';
 import FilterPanel from './components/FilterPanel';
+import LatestNearMeBanner from './components/LatestNearMeBanner';
 import { EarthquakeCard } from './components/EarthquakeCard';
 import { EarthquakeDetails } from './components/EarthquakeDetails';
+import ConnectionStatus from './components/ConnectionStatus';
+import Link from 'next/link';
 
 export default function Home() {
   const { isConnecting } = useAppInitialization();
@@ -61,11 +64,16 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-medium text-emerald-400">Live Stream Active</span>
-              </div>
+              <ConnectionStatus />
               
+              <Link 
+                href="/earthquakes/search"
+                className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                title="Advanced Search"
+              >
+                <Search className="w-5 h-5" />
+              </Link>
+
               <button 
                 onClick={() => window.location.reload()}
                 className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
@@ -138,6 +146,8 @@ export default function Home() {
           </div>
 
           <div className="flex-1 space-y-6">
+            <LatestNearMeBanner />
+
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
                 Recent Earthquakes

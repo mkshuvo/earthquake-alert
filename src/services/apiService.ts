@@ -19,6 +19,31 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+export interface SearchQueryParams {
+  q?: string;
+  minMagnitude?: number;
+  maxMagnitude?: number;
+  minDepth?: number;
+  maxDepth?: number;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  sortBy?: 'time' | 'magnitude' | 'depth';
+  order?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 interface EarthquakeStats {
   total: number;
   last24Hours: number;
@@ -99,13 +124,50 @@ class ApiService {
         createdAt: new Date(earthquake.createdAt),
         updatedAt: new Date(earthquake.updatedAt),
       }));
-    } catch (error: any) {
-      console.error(`[ApiService] FAILED to fetch from ${API_BASE_URL}:`, error.message);
+    } catch (error) {
+      console.error('[ApiService] Error fetching earthquakes:', error);
       throw error;
     }
   }
 
-  async getEarthquakeStatistics(): Promise<EarthquakeStats> {
+  async searchEarthquakes(params: SearchQueryParams): Promise<PaginatedResponse<EarthquakeEvent>> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.q) queryParams.append('q', params.q);
+    if (params.minMagnitude !== undefined) queryParams.append('minMagnitude', params.minMagnitude.toString());
+    if (params.maxMagnitude !== undefined) queryParams.append('maxMagnitude', params.maxMagnitude.toString());
+    if (params.minDepth !== undefined) queryParams.append('minDepth', params.minDepth.toString());
+    if (params.maxDepth !== undefined) queryParams.append('maxDepth', params.maxDepth.toString());
+    if (params.location) queryParams.append('location', params.location);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.order) queryParams.append('order', params.order);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+
+    try {
+      console.log(`[ApiService] Searching earthquakes with params: ${queryParams.toString()}`);
+      const response: AxiosResponse<PaginatedResponse<EarthquakeEvent>> = await this.axiosInstance.get(
+        `/earthquakes/search?${queryParams.toString()}`
+      );
+      
+      return {
+        ...response.data,
+        data: response.data.data.map(earthquake => ({
+          ...earthquake,
+          timestamp: new Date(earthquake.timestamp),
+          createdAt: new Date(earthquake.createdAt),
+          updatedAt: new Date(earthquake.updatedAt),
+        }))
+      };
+    } catch (error) {
+      console.error('[ApiService] Error searching earthquakes:', error);
+      throw error;
+    }
+  }
+
+  async getStatistics(): Promise<EarthquakeStats> {
     try {
       const response: AxiosResponse<EarthquakeStats> = await this.axiosInstance.get('/earthquakes/statistics');
       return response.data;

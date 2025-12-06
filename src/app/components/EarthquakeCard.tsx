@@ -51,6 +51,11 @@ export const EarthquakeCard = ({ earthquake, index, onSelect }: EarthquakeCardPr
     return `${days}d ago`;
   };
 
+  const isNew = (date: Date) => {
+    const timestamp = new Date(date).getTime();
+    return Date.now() - timestamp < 60 * 60 * 1000; // 1 hour
+  };
+
   return (
     <div
       className="group relative bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 cursor-pointer overflow-hidden transform hover:scale-[1.02] hover:shadow-xl hover:shadow-cyan-500/10"
@@ -64,6 +69,15 @@ export const EarthquakeCard = ({ earthquake, index, onSelect }: EarthquakeCardPr
       <div
         className={`absolute inset-0 bg-gradient-to-br ${getMagnitudeColor(earthquake.magnitude)} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
       />
+      
+      {/* New Badge */}
+      {isNew(earthquake.timestamp) && (
+        <div className="absolute top-0 right-0">
+          <div className="bg-cyan-500/20 text-cyan-400 text-[10px] font-bold px-2 py-1 rounded-bl-xl border-l border-b border-cyan-500/20">
+            NEW
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex items-start gap-4">
         <div

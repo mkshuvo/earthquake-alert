@@ -31,21 +31,45 @@ class RealtimeService {
           reconnectionDelayMax: 5000,
         });
 
+        // Connection timeout to prevent hanging
+        const connectionTimeout = setTimeout(() => {
+          if (this.socket && !this.socket.connected) {
+            this.socket.disconnect();
+            reject(new Error('Socket.IO connection timeout'));
+          }
+        }, 10000);
+
         this.socket.on('connect', () => {
+          clearTimeout(connectionTimeout);
+          console.log('✅ Socket.IO connected:', this.socket?.id);
+          
+          // Subscribe to earthquake updates
+          this.socket?.emit('subscribe-earthquakes', {});
+          
           useEarthquakeStore.getState().updateServerStatus({
             isConnected: true,
+            socketConnected: true,
             lastUpdate: new Date(),
-            // socketConnected flag will be merged by store extension
           });
           resolve();
         });
 
-        this.socket.on('disconnect', () => {
-          useEarthquakeStore.getState().updateServerStatus({ isConnected: false });
+        this.socket.on('connect_error', (err) => {
+          console.error('❌ Socket.IO connection error:', err);
+          // Don't reject immediately on first error to allow reconnection attempts within timeout
         });
 
-        // Common event names; adjust if backend differs
-        this.socket.on('earthquake:new', (payload: EarthquakeEvent) => {
+        this.socket.on('disconnect', (reason) => {
+          console.warn('⚠️ Socket.IO disconnected:', reason);
+          useEarthquakeStore.getState().updateServerStatus({ 
+            isConnected: false,
+            socketConnected: false 
+          });
+        });
+
+        // Listen for 'new-earthquake' event (matching backend)
+        this.socket.on('new-earthquake', (payload: EarthquakeEvent) => {
+          console.log('⚡ Received realtime earthquake:', payload.id);
           this.addEvent(payload);
         });
 
