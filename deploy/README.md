@@ -1,27 +1,22 @@
-Deployment (HTTP) for quakenow.ovh
+# Earthquake Alert Frontend Deployment
 
-Domains:
-- www.quakenow.ovh → frontend
-- api.quakenow.ovh → API server
-- rc.quakenow.ovh → RabbitMQ consumer
+## Prerequisites
+- Docker & Docker Compose
+- Nginx
+- External Docker network `earthquake_network`
+- API Server and Consumer running (see their respective repositories)
 
-Prerequisites:
-- DNS A (and AAAA if IPv6) for each subdomain pointing to VPS IP
-- Nginx installed on VPS; firewall ports 80 open
-- Docker network `earthquake_network` created
-- Containers running and exposing host ports:
-  - frontend → 48291
-  - api → 51763
-  - consumer → 8000
+## Setup
 
-Steps:
-1) Copy configs in deploy/nginx/*.conf to /etc/nginx/sites-available and symlink to sites-enabled
-2) Adjust any paths or ports if different on VPS
-3) nginx -t && systemctl reload nginx
-4) Set frontend env:
-   NEXT_PUBLIC_API_URL=http://api.quakenow.ovh
-   NEXT_PUBLIC_WEBSOCKET_URL=http://api.quakenow.ovh
-   NEXT_PUBLIC_MQTT_WS_URL=ws://rc.quakenow.ovh/mqtt (optional)
-5) Set API env:
-   CORS_ORIGIN=http://www.quakenow.ovh
+1. **Nginx Configuration**:
+   - Copy `deploy/nginx/www.quakenow.ovh.conf` to `/etc/nginx/sites-available/`.
+   - Symlink to `/etc/nginx/sites-enabled/`.
+   - Reload Nginx: `sudo nginx -t && sudo systemctl reload nginx`.
 
+2. **Run Service**:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+
+3. **Verify**:
+   - Frontend should be accessible at `http://www.quakenow.ovh`.

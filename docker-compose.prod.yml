@@ -6,6 +6,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://api.quakenow.ovh
+        NEXT_PUBLIC_WEBSOCKET_URL: http://api.quakenow.ovh
     environment:
       NEXT_PUBLIC_API_URL: http://api.quakenow.ovh
       NEXT_PUBLIC_WEBSOCKET_URL: http://api.quakenow.ovh
@@ -17,4 +20,3 @@ services:
 networks:
   earthquake_network:
     external: true
-
