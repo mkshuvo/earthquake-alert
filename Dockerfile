@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24-alpine AS builder
+FROM node:24-alpine3.22 AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && \
     npm run build
 
 # Runtime stage
-FROM node:24-alpine
+FROM node:24-alpine3.22
 
 WORKDIR /app
 

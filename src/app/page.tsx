@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, TrendingUp, AlertTriangle, Layers, Waves, RefreshCw, Search } from 'lucide-react';
+import { Activity, TrendingUp, AlertTriangle, Layers, Waves, RefreshCw, Search, Bell, BellRing, BellOff, MapPin, Loader2 } from 'lucide-react';
 import { useAppInitialization } from '../hooks/useAppInitialization';
 import { useEarthquakeStore, useFilteredEarthquakes, useEarthquakeStats, EarthquakeEvent } from '../store/earthquakeStore';
+import webSocketService from '../services/websocketService';
 import ParallaxBackground from './components/ParallaxBackground';
 import StatCard from './components/StatCard';
 import FilterPanel from './components/FilterPanel';
@@ -20,6 +21,135 @@ export default function Home() {
   const stats = useEarthquakeStats();
   const { earthquakes, isLoading } = useEarthquakeStore();
   const [selectedEarthquake, setSelectedEarthquake] = useState<EarthquakeEvent | null>(null);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [notificationState, setNotificationState] = useState<{
+    permission: NotificationPermission | 'default';
+    country: string | null;
+  }>({ permission: 'default', country: null });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const storedCountry = localStorage.getItem('userCountry');
+      // Use a more specific key to avoid collisions with other localhost apps
+      const isExplicitlyDisabled = localStorage.getItem('earthquake_notifications_disabled') === 'true';
+      
+      console.log('🔔 [Init] Notification Status:', { 
+        browserPermission: Notification.permission, 
+        isExplicitlyDisabled,
+        storedCountry 
+      });
+
+      // If permission is granted but user explicitly disabled in app, treat as default for UI
+      // This allows users to "unsubscribe" even if browser permission remains granted
+      const effectivePermission = isExplicitlyDisabled ? 'default' : Notification.permission;
+
+      webSocketService.setNotificationsEnabled(!isExplicitlyDisabled);
+
+      if (storedCountry && !isExplicitlyDisabled) {
+        webSocketService.setUserCountry(storedCountry);
+      }
+      
+      setNotificationState({
+        permission: effectivePermission,
+        country: isExplicitlyDisabled ? null : storedCountry
+      });
+    }
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notifications');
+      return;
+    }
+
+    setIsSubscribing(true);
+    localStorage.removeItem('earthquake_notifications_disabled');
+    webSocketService.setNotificationsEnabled(true);
+
+    try {
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        // Get Location
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(async (position) => {
+            try {
+              const { latitude, longitude } = position.coords;
+              // Using OpenStreetMap Nominatim for reverse geocoding
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for fetch
+
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=3`,
+                { 
+                  headers: { 'User-Agent': 'EarthquakeAlertApp/1.0' },
+                  signal: controller.signal
+                }
+              );
+              clearTimeout(timeoutId);
+              
+              if (!response.ok) throw new Error('Location service failed');
+              
+              const data = await response.json();
+              const country = data.address?.country;
+              
+              if (country) {
+                webSocketService.setUserCountry(country);
+                localStorage.setItem('userCountry', country);
+                setNotificationState({ permission: 'granted', country });
+              } else {
+                 setNotificationState({ permission: 'granted', country: null });
+              }
+            } catch (error) {
+              console.error('Location detection failed:', error);
+              // Fallback to global notifications if location fails
+              setNotificationState({ permission: 'granted', country: null });
+              alert('Could not detect location automatically. Subscribed to global alerts only.');
+            } finally {
+              setIsSubscribing(false);
+            }
+          }, (error) => {
+            console.error('Geolocation error:', error);
+            setNotificationState({ permission: 'granted', country: null });
+            // Only alert if it's a genuine error, not if user denied location (code 1)
+            if (error.code !== 1) {
+                alert('Location access unavailable. Subscribed to global alerts only.');
+            } else {
+                alert('Location access denied. Subscribed to global alerts only.');
+            }
+            setIsSubscribing(false);
+          }, {
+            timeout: 10000, // 10 second timeout for geolocation
+            enableHighAccuracy: false
+          });
+        } else {
+          setNotificationState({ permission: 'granted', country: null });
+          alert('Geolocation not supported. Subscribed to global alerts only.');
+          setIsSubscribing(false);
+        }
+      } else {
+        setNotificationState(prev => ({ ...prev, permission }));
+        if (permission === 'denied') {
+          alert('Notifications are blocked. Please enable them in your browser settings.');
+        }
+        setIsSubscribing(false);
+      }
+    } catch (error) {
+      console.error('Notification request error:', error);
+      setIsSubscribing(false);
+    }
+  };
+
+  const handleDisableNotifications = () => {
+    webSocketService.setUserCountry(null);
+    webSocketService.setNotificationsEnabled(false);
+    localStorage.removeItem('userCountry');
+    localStorage.setItem('earthquake_notifications_disabled', 'true');
+    console.log('🔔 [Action] Notifications disabled by user');
+    // We can't revoke permission programmatically, but we can stop tracking the country
+    // and treating it as 'default' state for our app logic effectively disabling personalized alerts
+    setNotificationState({ permission: 'default', country: null });
+  };
 
   if (isConnecting) {
     return (
@@ -136,11 +266,58 @@ export default function Home() {
                 <div className="relative z-10">
                   <h3 className="text-lg font-bold mb-2">Real-time Alerts</h3>
                   <p className="text-blue-100 text-sm mb-4">
-                    Get instant notifications for significant seismic activities worldwide.
+                    {notificationState.permission === 'granted'
+                      ? notificationState.country
+                        ? `You are subscribed to alerts for ${notificationState.country} and major global events.`
+                        : "You are subscribed to major global earthquake alerts."
+                      : "Get instant notifications for earthquakes in your country and significant worldwide events."
+                    }
                   </p>
-                  <button className="w-full py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-sm font-semibold transition-colors">
-                    Enable Notifications
-                  </button>
+                  
+                  {notificationState.permission === 'granted' ? (
+                    <div className="space-y-3">
+                      {notificationState.country && (
+                        <div className="w-full py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+                          <BellRing className="w-4 h-4" />
+                          Monitoring {notificationState.country}
+                        </div>
+                      )}
+                      
+                      <button 
+                        onClick={() => webSocketService.testNotification()}
+                        className="w-full py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Bell className="w-4 h-4" />
+                        Test Notification
+                      </button>
+
+                      <button 
+                        onClick={handleDisableNotifications}
+                        className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-100 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <BellOff className="w-4 h-4" />
+                        Unsubscribe
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleEnableNotifications}
+                      disabled={isSubscribing}
+                      className="w-full py-2 bg-white text-blue-600 hover:bg-blue-50 disabled:bg-slate-200 disabled:text-slate-500 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      {isSubscribing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Subscribing...
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="w-4 h-4" />
+                          Enable Notifications
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

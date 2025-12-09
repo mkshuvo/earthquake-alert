@@ -5,6 +5,22 @@ class WebSocketService {
   private pollInterval: NodeJS.Timeout | null = null;
   private lastKnownEarthquakes: Set<string> = new Set();
   private isConnected = false;
+   private userCountry: string | null = null;
+  private notificationsEnabled = true;
+
+  setUserCountry(country: string | null) {
+    this.userCountry = country;
+    if (country) {
+      console.log(`📍 User country set to: ${country}`);
+    } else {
+      console.log('📍 User country cleared. Notifications disabled for local events.');
+    }
+  }
+
+  setNotificationsEnabled(enabled: boolean) {
+    this.notificationsEnabled = enabled;
+    console.log(`🔔 Notifications ${enabled ? 'enabled' : 'disabled'}`);
+  }
 
   connect(): Promise<void> {
     return new Promise(async (resolve) => {
@@ -46,8 +62,13 @@ class WebSocketService {
           
           console.log('🆕 New earthquake detected:', earthquake.id);
           
-          // Show notification for significant earthquakes
-          if (earthquake.magnitude >= 5.0) {
+          // Check criteria for notification
+          const isSignificant = earthquake.magnitude >= 3.1;
+          // Local threshold: Any event in user's country (High relevance)
+          const isLocal = this.userCountry && earthquake.location.place.toLowerCase().includes(this.userCountry.toLowerCase());
+
+          // Show notification for significant earthquakes or local ones
+          if (isSignificant || isLocal) {
             this.showNotification(earthquake);
           }
         }
@@ -67,6 +88,7 @@ class WebSocketService {
   }
 
   private showNotification(earthquake: EarthquakeEvent): void {
+    if (!this.notificationsEnabled) return;
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(`Earthquake Alert - ${earthquake.magnitude}M`, {
         body: `${earthquake.location.place}\nDepth: ${earthquake.depth}km`,
@@ -101,6 +123,28 @@ class WebSocketService {
 
   getConnectionStatus(): boolean {
     return this.isConnected;
+  }
+
+  testNotification(): void {
+    const mockEarthquake: EarthquakeEvent = {
+      id: `test-${Date.now()}`,
+      magnitude: 7.5,
+      location: {
+        place: 'Test Location - Pacific Ocean',
+        latitude: 0,
+        longitude: 0
+      },
+      depth: 10,
+      timestamp: new Date(),
+      url: 'https://earthquake.usgs.gov',
+      alert: null,
+      tsunami: 1,
+      processed: true,
+      notificationSent: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.showNotification(mockEarthquake);
   }
 }
 
