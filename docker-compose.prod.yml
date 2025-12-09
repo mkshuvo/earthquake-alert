@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: ea-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://api.quakenow.ovh
+      NEXT_PUBLIC_WEBSOCKET_URL: http://api.quakenow.ovh
+    ports:
+      - "48291:3000"
+    networks:
+      - earthquake_network
+
+networks:
+  earthquake_network:
+    external: true
+
