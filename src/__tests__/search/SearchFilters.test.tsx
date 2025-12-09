@@ -1,26 +1,31 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SearchFilters from '../../app/components/search/SearchFilters';
+import { useRouter, useSearchParams } from 'next/navigation';
 import '@testing-library/jest-dom';
 
 // Mock next/navigation
-const mockPush = jest.fn();
-const mockGet = jest.fn();
-const mockSearchParams = {
-  get: mockGet,
-};
-
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
-  useSearchParams: () => mockSearchParams,
+  useRouter: jest.fn(),
+  useSearchParams: jest.fn(),
 }));
 
 describe('SearchFilters Component', () => {
+  const mockPush = jest.fn();
+  const mockGet = jest.fn();
+
   beforeEach(() => {
     mockPush.mockClear();
     mockGet.mockReset();
+    
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
+    });
+
+    (useSearchParams as jest.Mock).mockReturnValue({
+      get: mockGet,
+    });
+
     mockGet.mockImplementation((key) => {
       if (key === 'minMagnitude') return '0';
       if (key === 'maxMagnitude') return '10';

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Calendar, SlidersHorizontal, ArrowDownUp, Filter } from 'lucide-react';
 import { SearchQueryParams } from '../../../services/apiService';
+import { truncateMagnitude } from '../../../utils/format';
 
 export default function SearchFilters() {
   const router = useRouter();
@@ -94,7 +95,7 @@ export default function SearchFilters() {
           {/* Magnitude Range */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-3">
-              Magnitude: {filters.minMagnitude} - {filters.maxMagnitude}
+              Magnitude: {truncateMagnitude(filters.minMagnitude || 0)} - {truncateMagnitude(filters.maxMagnitude || 10)}
             </label>
             <div className="grid grid-cols-2 gap-4">
               <div>
