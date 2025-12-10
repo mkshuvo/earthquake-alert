@@ -7,7 +7,15 @@ class RealtimeService {
 
   constructor() {
     const base = process.env.NEXT_PUBLIC_WEBSOCKET_URL || '';
-    this.url = base.replace(/\/$/, '');
+    const cleaned = base.replace(/\/$/, '');
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin.replace(/\/$/, '');
+      const originIsLocal = /localhost|127\.0\.0\.1/.test(origin);
+      const baseIsLocal = /localhost|127\.0\.0\.1/.test(cleaned);
+      this.url = (!originIsLocal && baseIsLocal) ? origin : cleaned;
+    } else {
+      this.url = cleaned;
+    }
   }
 
   connect(): Promise<void> {

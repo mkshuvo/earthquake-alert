@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: quakenow-nginx
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./www.quakenow.ovh.conf:/etc/nginx/conf.d/www.quakenow.ovh.conf:ro
+      - ../../earthquake-alert-server/deploy/nginx/api.quakenow.ovh.conf:/etc/nginx/conf.d/api.quakenow.ovh.conf:ro
+      - ../../earthquake-rabbitmq-consumer/deploy/nginx/rc.quakenow.ovh.conf:/etc/nginx/conf.d/rc.quakenow.ovh.conf:ro

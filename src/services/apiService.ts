@@ -4,6 +4,17 @@ import { EarthquakeEvent, EarthquakeFilters } from '../store/earthquakeStore';
 // Server-side (Docker network) vs Client-side (Host network) URL
 // Managed solely through Docker Compose environment variables as requested
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const resolveBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    const isLocalOrigin = /localhost|127\.0\.0\.1/.test(origin);
+    const envIsLocal = API_BASE_URL ? /localhost|127\.0\.0\.1/.test(API_BASE_URL) : false;
+    if (!API_BASE_URL || (!isLocalOrigin && envIsLocal)) {
+      return origin.replace(/\/$/, '') + '/api';
+    }
+  }
+  return API_BASE_URL;
+};
 
 if (!API_BASE_URL) {
   console.error('CRITICAL: NEXT_PUBLIC_API_URL is not defined. API calls will fail.');
@@ -69,7 +80,7 @@ class ApiService {
 
   constructor() {
     this.axiosInstance = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: resolveBaseUrl(),
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +123,7 @@ class ApiService {
       if (filters.limit) params.append('limit', filters.limit.toString());
     }
     try {
-      console.log(`[ApiService] Fetching from ${API_BASE_URL}/earthquakes`);
+      console.log(`[ApiService] Fetching from ${this.axiosInstance.defaults.baseURL}/earthquakes`);
       const response: AxiosResponse<EarthquakeEvent[]> = await this.axiosInstance.get(
         `/earthquakes?${params.toString()}`
       );
