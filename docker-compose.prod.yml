@@ -17,6 +17,21 @@ services:
     networks:
       - earthquake_network
 
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: quakenow-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/www.quakenow.ovh.conf:/etc/nginx/conf.d/www.quakenow.ovh.conf:ro
+      - ../earthquake-alert-server/deploy/nginx/api.quakenow.ovh.conf:/etc/nginx/conf.d/api.quakenow.ovh.conf:ro
+      - ../earthquake-rabbitmq-consumer/deploy/nginx/rc.quakenow.ovh.conf:/etc/nginx/conf.d/rc.quakenow.ovh.conf:ro
+    networks:
+      - earthquake_network
+    depends_on:
+      - app
+
 networks:
   earthquake_network:
     external: true
