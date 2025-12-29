@@ -7,11 +7,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://api.quakenow.ovh
-        NEXT_PUBLIC_WEBSOCKET_URL: http://api.quakenow.ovh
+        NEXT_PUBLIC_API_URL: https://api.quakenow.ovh
+        NEXT_PUBLIC_WEBSOCKET_URL: https://api.quakenow.ovh
     environment:
-      NEXT_PUBLIC_API_URL: http://api.quakenow.ovh
-      NEXT_PUBLIC_WEBSOCKET_URL: http://api.quakenow.ovh
+      NEXT_PUBLIC_API_URL: https://api.quakenow.ovh
+      NEXT_PUBLIC_WEBSOCKET_URL: https://api.quakenow.ovh
     ports:
       - "48291:3000"
     networks:
@@ -23,14 +23,29 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./deploy/nginx/www.quakenow.ovh.conf:/etc/nginx/conf.d/www.quakenow.ovh.conf:ro
       - ../earthquake-alert-server/deploy/nginx/api.quakenow.ovh.conf:/etc/nginx/conf.d/api.quakenow.ovh.conf:ro
       - ../earthquake-rabbitmq-consumer/deploy/nginx/rc.quakenow.ovh.conf:/etc/nginx/conf.d/rc.quakenow.ovh.conf:ro
+      - ../certs:/etc/nginx/certs:ro
+      - certbot-www:/var/www/certbot
+      - certbot-conf:/etc/letsencrypt
     networks:
       - earthquake_network
     depends_on:
       - app
+
+  certbot:
+    image: certbot/certbot
+    container_name: quakenow-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-conf:/etc/letsencrypt
+
+volumes:
+  certbot-www:
+  certbot-conf:
 
 networks:
   earthquake_network:
