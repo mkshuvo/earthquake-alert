@@ -68,7 +68,7 @@ interface HealthCheck {
   status: string;
   details: {
     database: string;
-    redis: string;
+    dragonfly: string;
     mqtt: string;
     lastFetch: string;
     connectedClients: number;
@@ -143,7 +143,7 @@ class ApiService {
 
   async searchEarthquakes(params: SearchQueryParams): Promise<PaginatedResponse<EarthquakeEvent>> {
     const queryParams = new URLSearchParams();
-    
+
     if (params.q) queryParams.append('q', params.q);
     if (params.minMagnitude !== undefined) queryParams.append('minMagnitude', params.minMagnitude.toString());
     if (params.maxMagnitude !== undefined) queryParams.append('maxMagnitude', params.maxMagnitude.toString());
@@ -162,7 +162,7 @@ class ApiService {
       const response: AxiosResponse<PaginatedResponse<EarthquakeEvent>> = await this.axiosInstance.get(
         `/earthquakes/search?${queryParams.toString()}`
       );
-      
+
       return {
         ...response.data,
         data: response.data.data.map(earthquake => ({
@@ -223,7 +223,7 @@ class ApiService {
     try {
       const endDate = new Date();
       const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000); // Last 24 hours
-      
+
       // Call getEarthquakes directly with filters to avoid infinite recursion
       const params = new URLSearchParams();
       params.append('startDate', startDate.toISOString());
@@ -231,7 +231,7 @@ class ApiService {
       params.append('limit', limit.toString());
       params.append('minMagnitude', '0');
       params.append('maxMagnitude', '10');
-      
+
       if (filters?.location) {
         params.append('location', filters.location);
       }

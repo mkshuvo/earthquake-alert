@@ -19,8 +19,8 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}
 
 RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && \
-    echo "Building with NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}" && \
-    npm run build
+  echo "Building with NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}" && \
+  npm run build
 
 # Runtime stage
 FROM node:24-alpine3.22
@@ -37,9 +37,11 @@ RUN npm install --production
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 
-# Set runtime environment variables
-ENV NEXT_PUBLIC_API_URL=http://localhost:6000/api
-ENV NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
+# Set runtime environment variables using build args
+ARG NEXT_PUBLIC_API_URL=http://localhost:6000/api
+ARG NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}
 
 # Expose port
 EXPOSE 3000
