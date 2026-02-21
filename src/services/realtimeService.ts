@@ -6,16 +6,9 @@ class RealtimeService {
   private url: string;
 
   constructor() {
-    const base = process.env.NEXT_PUBLIC_WEBSOCKET_URL || '';
-    const cleaned = base.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      const origin = window.location.origin.replace(/\/$/, '');
-      const originIsLocal = /localhost|127\.0\.0\.1/.test(origin);
-      const baseIsLocal = /localhost|127\.0\.0\.1/.test(cleaned);
-      this.url = (!originIsLocal && baseIsLocal) ? origin : cleaned;
-    } else {
-      this.url = cleaned;
-    }
+    // In the browser, we use relative paths to leverage Next.js proxy/rewrites
+    // In other environments (SSR), we use the environment variable
+    this.url = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_WEBSOCKET_URL || '').replace(/\/$/, '');
   }
 
   connect(): Promise<void> {
@@ -25,18 +18,25 @@ class RealtimeService {
         try {
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 2000);
-          const res = await fetch(`${this.url}/api/earthquakes/health`, { signal: controller.signal });
+          const healthUrl = this.url ? `${this.url}/api/earthquakes/health` : '/api/earthquakes/health';
+          console.log(`🔍 Checking backend health at: ${healthUrl}`);
+          const res = await fetch(healthUrl, { signal: controller.signal });
           clearTimeout(timeout);
           if (!res.ok) throw new Error(String(res.status));
-        } catch {
+          console.log('✅ Backend health check passed');
+        } catch (e: any) {
+          console.error('❌ Backend health check failed:', e.message);
           return reject(new Error('backend-unreachable'));
         }
 
+        console.log(`🔌 Connecting to Socket.IO at: ${this.url || 'relative path'}`);
         this.socket = io(this.url, {
+          path: '/socket.io',
           transports: ['websocket', 'polling'],
           reconnection: true,
           reconnectionDelay: 1000,
           reconnectionDelayMax: 5000,
+          withCredentials: true,
         });
 
         // Connection timeout to prevent hanging

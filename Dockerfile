@@ -15,11 +15,17 @@ COPY . .
 # Build the application with environment variables
 ARG NEXT_PUBLIC_API_URL=http://localhost:6000/api
 ARG NEXT_PUBLIC_WEBSOCKET_URL=http://localhost:6000
+ARG BACKEND_HOST=ea-worker
+ARG BACKEND_PORT=6000
+
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}
+ENV BACKEND_HOST=${BACKEND_HOST}
+ENV BACKEND_PORT=${BACKEND_PORT}
 
 RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" && \
   echo "Building with NEXT_PUBLIC_WEBSOCKET_URL=${NEXT_PUBLIC_WEBSOCKET_URL}" && \
+  echo "Building with BACKEND_HOST=${BACKEND_HOST}" && \
   npm run build
 
 # Runtime stage
@@ -36,6 +42,7 @@ RUN npm install --production
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.js ./next.config.js
 
 # Set runtime environment variables using build args
 ARG NEXT_PUBLIC_API_URL=http://localhost:6000/api
