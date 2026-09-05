@@ -10,48 +10,60 @@ export const useAppInitialization = () => {
 
   useEffect(() => {
     let timeoutHandle: NodeJS.Timeout | null = null;
+    let isMounted = true;
     
     const initializeApp = async () => {
       setLoading(true);
       
       try {
-        // Request notification permission
-        await webSocketService.requestNotificationPermission();
-        
         // Load initial data first
         console.log('Loading initial earthquake data...');
         try {
           // Fetch global data instead of filtered data to ensure store has data for "Latest Near You"
           const earthquakes = await apiService.getRecentEarthquakes(100);
-          setEarthquakes(earthquakes);
+          if (isMounted) {
+            setEarthquakes(earthquakes);
+          }
         } catch (error) {
           console.error('Failed to load initial data:', error);
-          setError('Failed to load earthquake data');
+          if (isMounted) {
+            setError('Failed to load earthquake data');
+          }
         }
         
-        // Connect to socket.io real-time updates (preferred)
-        try {
-          console.log('Connecting to socket.io realtime...');
-          await realtimeService.connect();
-        } catch (e) {
-          console.warn('Realtime socket failed, falling back to polling');
-          await webSocketService.connect();
-        }
+        // Connect to socket.io real-time updates in background (non-blocking)
+        realtimeService.connect().catch((e) => {
+          console.warn('Realtime socket failed, falling back to polling:', e);
+          webSocketService.connect();
+        });
         
-        setLoading(false);
-        setIsConnecting(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsConnecting(false);
+        }
       } catch (error) {
         console.error('Failed to initialize app:', error);
-        setError('Failed to initialize application');
+        if (isMounted) {
+          setError('Failed to initialize application');
+          setLoading(false);
+          setIsConnecting(false);
+        }
+      }
+    };
+
+    // Safety timeout: ensure loading screen is dismissed even if network stalls
+    timeoutHandle = setTimeout(() => {
+      if (isMounted) {
         setLoading(false);
         setIsConnecting(false);
       }
-    };
+    }, 3000);
 
     initializeApp();
 
     // Cleanup on unmount
     return () => {
+      isMounted = false;
       realtimeService.disconnect();
       webSocketService.disconnect();
       if (timeoutHandle) {
