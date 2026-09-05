@@ -9,6 +9,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://api.quakenow.ovh
         NEXT_PUBLIC_WEBSOCKET_URL: https://api.quakenow.ovh
+    restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: https://api.quakenow.ovh
       NEXT_PUBLIC_WEBSOCKET_URL: https://api.quakenow.ovh
