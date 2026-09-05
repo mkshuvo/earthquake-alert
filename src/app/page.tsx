@@ -5,6 +5,7 @@ import { Activity, TrendingUp, AlertTriangle, Layers, Waves, RefreshCw, Search, 
 import { useAppInitialization } from '../hooks/useAppInitialization';
 import { useEarthquakeStore, useFilteredEarthquakes, useEarthquakeStats, EarthquakeEvent } from '../store/earthquakeStore';
 import webSocketService from '../services/websocketService';
+import apiService from '../services/apiService';
 import ParallaxBackground from './components/ParallaxBackground';
 import StatCard from './components/StatCard';
 import FilterPanel from './components/FilterPanel';
@@ -19,9 +20,10 @@ export default function Home() {
   const { isConnecting } = useAppInitialization();
   const filteredEarthquakes = useFilteredEarthquakes();
   const stats = useEarthquakeStats();
-  const { earthquakes, isLoading } = useEarthquakeStore();
+  const { earthquakes, isLoading, error, setEarthquakes, setLoading, setError } = useEarthquakeStore();
   const [selectedEarthquake, setSelectedEarthquake] = useState<EarthquakeEvent | null>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [notificationState, setNotificationState] = useState<{
     permission: NotificationPermission | 'default';
     country: string | null;
@@ -151,6 +153,22 @@ export default function Home() {
     setNotificationState({ permission: 'default', country: null });
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiService.getRecentEarthquakes(100);
+      setEarthquakes(data);
+    } catch (err: any) {
+      console.error('Failed to refresh earthquakes:', err);
+      setError('Failed to fetch earthquake data. Please check connection and try again.');
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
+  };
+
   if (isConnecting) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 relative overflow-hidden text-white">
@@ -206,10 +224,12 @@ export default function Home() {
               </Link>
 
               <button 
-                onClick={() => window.location.reload()}
-                className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                onClick={handleRefresh}
+                disabled={isRefreshing || isLoading}
+                className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+                title="Refresh Earthquakes"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className={`w-5 h-5 ${isRefreshing || isLoading ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -335,11 +355,40 @@ export default function Home() {
               </h2>
             </div>
 
-            {isLoading && earthquakes.length === 0 ? (
+            {error ? (
+              <div className="p-8 rounded-xl bg-red-500/10 border border-red-500/20 text-center space-y-4">
+                <AlertTriangle className="w-10 h-10 text-red-400 mx-auto" />
+                <p className="text-red-300 font-medium">{error}</p>
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Retry Connection
+                </button>
+              </div>
+            ) : isLoading && earthquakes.length === 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="h-48 bg-slate-800/50 rounded-xl animate-pulse" />
                 ))}
+              </div>
+            ) : filteredEarthquakes.length === 0 ? (
+              <div className="p-12 rounded-xl bg-slate-900/50 border border-slate-800 text-center space-y-3">
+                <Waves className="w-12 h-12 text-slate-500 mx-auto" />
+                <h3 className="text-lg font-semibold text-white">No Earthquakes Found</h3>
+                <p className="text-slate-400 text-sm max-w-md mx-auto">
+                  No earthquake events match your current filter settings, or no recent events were found.
+                </p>
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-sm transition-colors inline-flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh Feed
+                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

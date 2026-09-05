@@ -221,16 +221,9 @@ class ApiService {
   // Method to get recent earthquakes for fallback when WebSocket is down
   async getRecentEarthquakes(limit: number = 50, filters?: { location?: string }): Promise<EarthquakeEvent[]> {
     try {
-      const endDate = new Date();
-      const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000); // Last 24 hours
-
-      // Call getEarthquakes directly with filters to avoid infinite recursion
+      // Fetch latest earthquakes directly to leverage backend fast cache and avoid client clock skew
       const params = new URLSearchParams();
-      params.append('startDate', startDate.toISOString());
-      params.append('endDate', endDate.toISOString());
       params.append('limit', limit.toString());
-      params.append('minMagnitude', '0');
-      params.append('maxMagnitude', '10');
 
       if (filters?.location) {
         params.append('location', filters.location);
