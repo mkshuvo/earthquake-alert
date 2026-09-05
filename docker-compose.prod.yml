@@ -36,6 +36,7 @@ services:
       - ../earthquake-alert-server/deploy/nginx/api.quakenow.ovh.conf:/etc/nginx/conf.d/api.quakenow.ovh.conf:ro
       - ../earthquake-rabbitmq-consumer/deploy/nginx/rc.quakenow.ovh.conf:/etc/nginx/conf.d/rc.quakenow.ovh.conf:ro
       - ../certs:/etc/nginx/certs:ro
+      - ./deploy/nginx/40-auto-reload.sh:/docker-entrypoint.d/40-auto-reload.sh:ro
       - certbot-www:/var/www/certbot
       - certbot-conf:/etc/letsencrypt
     networks:
